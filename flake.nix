@@ -98,13 +98,14 @@
 
         packages.default = aleph_wine;
 
-        devShells.default = craneLib.devShell {
+        devShells.default = craneLib.devShell rec {
           inputsFrom = [aleph];
 
           inherit depsBuildBuild;
 
           CARGO_BUILD_TARGET = buildTarget;
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER = "${pkgs.wineWowPackages.stable}/bin/wine";
+          WINEDEBUG = "-all";
         };
       };
     };
