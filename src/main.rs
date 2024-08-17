@@ -1,49 +1,92 @@
+use std::fs::{self, File};
+use std::io;
 use std::process::Command;
-//use std::path::Path;
-
-const DEBUG: bool = true;
 
 fn main() {
     println!("Hello, Za WARUDO!");
     println!("I am totally running on {}", std::env::consts::OS);
 
+    let mut filepath = String::new();
     match download_url("https://github.com/lukesampson/cowsay-psh/archive/master.zip") {
-        Ok(()) => println!("Download succesfull"),
+        Ok(name) => filepath = name,
         Err(error) => println!("Download Failed with: {error}"),
     };
+
+
+    // TODO try to unzip this shit
+    let _ = unzip(&filepath);
 }
 
-fn download_url(url: &str) -> Result<(), String> {
-    //! downloads the given url and returns the path of the downloaded file
-
-    let Some(filename) = get_filename(url) else {
-        return Err("Failed to extract file name".to_string());
+fn unzip(archive: &str) -> Result<(), String> {
+    let Ok(file) = File::open(archive) else {
+        return Err("invalid File path".to_string());
     };
 
-    if DEBUG {
-        println!("Downloading file {filename}")
+    let Ok(mut archive) = zip::ZipArchive::new(file) else {
+        return Err("Failed to open archive".to_string());
+    };
+
+    // TODO cleanup the unrwaps here later
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).unwrap();
+        let outpath = match file.enclosed_name() {
+            Some(path) => path,
+            None => continue,
+        };
+
+        {
+            let comment = file.comment();
+            if !comment.is_empty() {
+                println!("File {i} comment: {comment}");
+            }
+        }
+
+        if file.is_dir() {
+            println!("File {} extracted to \"{}\"", i, outpath.display());
+            fs::create_dir_all(&outpath).unwrap();
+        } else {
+            println!(
+                "File {} extracted to \"{}\" ({} bytes)",
+                i,
+                outpath.display(),
+                file.size()
+            );
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(p).unwrap();
+                }
+            }
+            let mut outfile = fs::File::create(&outpath).unwrap();
+            io::copy(&mut file, &mut outfile).unwrap();
+        }
     }
+    Ok(())
+}
+
+/// downloads the given url and returns the path of the downloaded file
+fn download_url(url: &str) -> Result<String, String> {
+    let filename = get_filename(url).unwrap_or("file.bin".to_string());
+
+    println!("Downloading file {filename}");
 
     // empty to select current directory
-    let download_location: String = String::from("");
+    let download_location: String = String::from("downloads/");
     let file_path = download_location + &filename;
 
     let Ok(output) = Command::new("pwsh")
-        .args(dbg!(["-c", "Invoke-WebRequest", url, "-OutFile ", &file_path]))
+        .args(["-c", "Invoke-WebRequest", url, "-OutFile ", &file_path])
         .output()
     else {
         return Err("Failed to execute request".to_string());
     };
 
     match String::from_utf8(output.stderr) {
-        Ok(str) => {
-            if str.is_empty() {
-                if DEBUG {
-                    println!("Download Sucessfull")
-                }
-                Ok(())
+        Ok(stderr) => {
+            if stderr.is_empty() {
+                println!("Download Sucessfull");
+                Ok(file_path)
             } else {
-                Err(str)
+                Err(stderr)
             }
         }
         Err(_) => Err("Failed to parse stderr".to_string()),
