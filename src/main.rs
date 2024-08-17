@@ -1,30 +1,61 @@
-//use std::fs::File;
-//use std::io;
 use std::process::Command;
+//use std::path::Path;
+
+const DEBUG: bool = true;
 
 fn main() {
     println!("Hello, Za WARUDO!");
     println!("I am totally running on {}", std::env::consts::OS);
 
-    let output = Command::new("cmd")
-        .args(["/C", "echo 'Hello World'"])
-        .output()
-        .expect("Failed to execute command");
+    match download_url("https://github.com/lukesampson/cowsay-psh/archive/master.zip") {
+        Ok(()) => println!("Download succesfull"),
+        Err(error) => println!("Download Failed with: {error}"),
+    };
+}
 
-    let Ok(text) = String::from_utf8(output.stdout) else {
-        println!("Empty output");
-        return;
+fn download_url(url: &str) -> Result<(), String> {
+    //! downloads the given url and returns the path of the downloaded file
+
+    let Some(filename) = get_filename(url) else {
+        return Err("Failed to extract file name".to_string());
     };
 
-    println!("{text}");
+    if DEBUG {
+        println!("Downloading file {filename}")
+    }
 
-    //let response = reqwest::blocking::get(
-    //    "https://github.com/Clozure/ccl/releases/download/v1.12.2/ccl-1.12.2-windowsx86.zip",
-    //)
-    //.expect("failed to fetch url");
-    //
-    //let body = response.text().expect("No data");
-    //
-    //let mut out = File::create("rustup-init.sh").expect("failed to create file");
-    //io::copy(&mut body.as_bytes(), &mut out).expect("failed to copy content");
+    // empty to select current directory
+    let download_location: String = String::from("");
+    let file_path = download_location + &filename;
+
+    let Ok(output) = Command::new("pwsh")
+        .args(dbg!(["-c", "Invoke-WebRequest", url, "-OutFile ", &file_path]))
+        .output()
+    else {
+        return Err("Failed to execute request".to_string());
+    };
+
+    match String::from_utf8(output.stderr) {
+        Ok(str) => {
+            if str.is_empty() {
+                if DEBUG {
+                    println!("Download Sucessfull")
+                }
+                Ok(())
+            } else {
+                Err(str)
+            }
+        }
+        Err(_) => Err("Failed to parse stderr".to_string()),
+    }
+}
+
+fn get_filename(url: &str) -> Option<String> {
+    let last_token = url.split('/').last()?;
+
+    if last_token.contains('.') {
+        Some(last_token.to_string())
+    } else {
+        None
+    }
 }
