@@ -102,6 +102,8 @@
           inputsFrom = [aleph];
 
           inherit depsBuildBuild;
+  
+          RUST_BACKTRACE = 1;
 
           CARGO_BUILD_TARGET = buildTarget;
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER = "${pkgs.wineWowPackages.stable}/bin/wine";
