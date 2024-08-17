@@ -44,7 +44,7 @@
         system,
         ...
       }: let
-        rustToolchain = pkgs.rust-bin.nightly.latest.default.override {
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
           extensions = ["rust-src"];
           targets = [buildTarget];
         };
@@ -53,7 +53,7 @@
 
         depsBuildBuild = with pkgs; [
           pkgsCross.mingwW64.stdenv.cc
-          pkgsCross.mingwW64.windows.pthreads
+          # pkgsCross.mingwW64.windows.pthreads
         ];
 
         buildTarget = "x86_64-pc-windows-gnu";
@@ -98,7 +98,7 @@
 
         packages.default = aleph_wine;
 
-        devShells.default = craneLib.devShell rec {
+        devShells.default = craneLib.devShell {
           inputsFrom = [aleph];
 
           inherit depsBuildBuild;
@@ -106,6 +106,16 @@
           CARGO_BUILD_TARGET = buildTarget;
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER = "${pkgs.wineWowPackages.stable}/bin/wine";
           WINEDEBUG = "-all";
+
+          # WHY DOES CRANE NOT ADD THIS IN THE DEV SHELL AAAAAAAAAAAAAA
+          TARGET_CC = "${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/${pkgs.pkgsCross.mingwW64.stdenv.cc.targetPrefix}cc";
+          OPENSSL_DIR = "${pkgs.openssl.dev}";
+          OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+          OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include/";
+
+          RUSTFLAGS = (builtins.map (a: ''-L ${a}/lib'') [
+            pkgs.pkgsCross.mingwW64.windows.pthreads
+          ]);
         };
       };
     };
