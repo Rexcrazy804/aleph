@@ -15,7 +15,7 @@ fn main() {
 
     let mut filepath = String::new();
     match download_url(
-        "https://github.com/lukesampson/cowsay-psh/archive/master.zip",
+        "https://github.com/jftuga/less-Windows/releases/download/less-v661/less-x64.zip",
         &download_dir,
     ) {
         Ok(name) => filepath = name,
