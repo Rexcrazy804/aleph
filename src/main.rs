@@ -1,39 +1,44 @@
 mod zipper;
 
-use std::process::Command;
+use std::{fs, process::Command};
 use zipper::unzip;
 
 fn main() {
     println!("Running on {}", std::env::consts::OS);
 
-    let home_dir = get_home_directory().expect("Failed to get home directory").trim().to_owned();
-    dbg!(&home_dir);
+    let home_dir = get_home_directory()
+        .expect("Failed to get home directory")
+        .trim()
+        .to_owned();
     let download_dir = home_dir.clone() + "/Downloads/";
     let extract_dir = home_dir.clone() + "/Documents/aleph/";
 
     let mut filepath = String::new();
-    match download_url("https://github.com/lukesampson/cowsay-psh/archive/master.zip", &download_dir) {
+    match download_url(
+        "https://github.com/lukesampson/cowsay-psh/archive/master.zip",
+        &download_dir,
+    ) {
         Ok(name) => filepath = name,
         Err(error) => println!("Download Failed with: {error}"),
     };
 
-    match unzip(&filepath, &extract_dir) {
-        Ok(directory) => {
-            // basically edit the current powershell profile here
-        },
-        Err(_) => todo!(),
-    };
+    let unziped_dir = unzip(&filepath, &extract_dir).expect("Failed to extract");
+
+    powershell_path_install(&home_dir, &vec![extract_dir + &unziped_dir + "/"])
+        .unwrap_or_else(|e| panic!("{e}"));
 }
 
 fn get_home_directory() -> Option<String> {
-    let Ok(output) = Command::new("pwsh")
-        .args(["-c", "echo", "$home"])
-        .output() 
-    else { return None };
+    let Ok(output) = Command::new("pwsh").args(["-c", "echo", "$home"]).output() else {
+        return None;
+    };
 
     let home_directory = String::from_utf8(output.stdout).unwrap();
-    if !home_directory.is_empty()  { Some(home_directory) }
-    else { None }
+    if !home_directory.is_empty() {
+        Some(home_directory)
+    } else {
+        None
+    }
 }
 
 /// downloads the given url and returns the path of the downloaded file
@@ -73,4 +78,41 @@ fn get_filename(url: &str) -> Option<String> {
     } else {
         None
     }
+}
+fn powershell_path_install(home_dir: &str, paths: &Vec<String>) -> std::io::Result<()> {
+    let profile_path =
+        home_dir.to_owned() + "/Documents/PowerShell/Microsoft.PowerShell_profile.ps1";
+
+    //let profile_path = "./config.ps1";
+    let ps_profile = match fs::read_to_string(&profile_path) {
+        Ok(content) => content,
+        Err(_) => {
+            println!("FILE DOES NOT EXIST: {profile_path}");
+            todo!("Populate it with the base template so we can write the the file later");
+        }
+    };
+
+    let mut modified_ps_profile = String::new();
+    for line in ps_profile.lines() {
+        if line.contains("$env:PATH = (") {
+            // TODO if the file does not have a $env:PATH = (
+            // i.e. we are touching a profile that was created by the user and not us
+            // handle such a situation should be easy I'll leave it to Sanoy :D
+            modified_ps_profile.push_str(&(line.to_owned() + "\n"));
+            for path in paths {
+                let replaced_path = path.replace(home_dir, "$HOME");
+                // <space><space>"PATH;" +
+                modified_ps_profile
+                    .push_str(&("  \"".to_owned() + &replaced_path + ";\"" + " +" + "\n"));
+                //TODO remove duplicate paths and preferably notify that the program has already
+                //been installed (? dk how that would happen) if there exists a corresponding path
+            }
+            continue;
+        }
+        modified_ps_profile.push_str(&(line.to_owned() + "\n"));
+    }
+
+    fs::write(profile_path, modified_ps_profile)?;
+    println!("installed program to path");
+    Ok(())
 }

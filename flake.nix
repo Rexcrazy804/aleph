@@ -18,10 +18,7 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
 
-    crane = {
-      url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    crane.url = "github:ipetkov/crane";
   };
 
   outputs = {flake-parts, ...} @ inputs:
@@ -44,19 +41,18 @@
         system,
         ...
       }: let
-        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+        buildTarget = "x86_64-pc-windows-gnu";
+        rustToolChain = pkgs.rust-bin.stable.latest.default.override {
           extensions = ["rust-src"];
           targets = [buildTarget];
         };
 
-        craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
+        craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolChain;
 
         depsBuildBuild = with pkgs; [
           pkgsCross.mingwW64.stdenv.cc
           # pkgsCross.mingwW64.windows.pthreads
         ];
-
-        buildTarget = "x86_64-pc-windows-gnu";
 
         aleph = craneLib.buildPackage {
           src = craneLib.cleanCargoSource ./.;
@@ -91,7 +87,7 @@
             alejandra.enable = true;
             rustfmt = {
               enable = true;
-              package = pkgs.rust-bin.nightly.latest.rustfmt;
+              package = pkgs.rust-bin.stable.latest.rustfmt;
             };
           };
         };
@@ -113,9 +109,9 @@
           OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
           OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include/";
 
-          RUSTFLAGS = (builtins.map (a: ''-L ${a}/lib'') [
+          RUSTFLAGS = builtins.map (a: ''-L ${a}/lib'') [
             pkgs.pkgsCross.mingwW64.windows.pthreads
-          ]);
+          ];
         };
       };
     };
