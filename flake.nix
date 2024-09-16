@@ -1,7 +1,7 @@
 {
   description = "A flake for cross compiling and running rust windows target";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
