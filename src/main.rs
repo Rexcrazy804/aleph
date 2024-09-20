@@ -1,3 +1,4 @@
+mod manifest;
 mod powershell;
 mod zipper;
 

@@ -15,3 +15,26 @@ fn serde_test() {
     assert_eq!("+44 1234567", data["phones"][0]);
     assert_eq!("+44 2345678", data["phones"][1]);
 }
+
+#[test]
+fn serde_parse() {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Deserialize)]
+    struct Manifest {
+        version: String,
+        url: String,
+        bin: String,
+        comment: Option<String>,
+        extract_dir: String,
+    }
+
+    let data = std::fs::read_to_string("./tests/sample_data/cowsay.json")
+        .expect("Failed to retreive sample data");
+    let data: Manifest = serde_json::from_str(&data).expect(".w.");
+
+    assert_eq!("1.0", data.version);
+    assert_eq!("cowsay-psh-master", data.extract_dir);
+    assert_eq!("cowsay.ps1", data.bin);
+    assert_eq!(None, data.comment);
+}
