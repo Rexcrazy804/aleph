@@ -7,14 +7,18 @@ fn main() {
     println!("Running on {}", std::env::consts::OS);
 
     let home_dir = get_home_directory()
-        .expect("Failed to get home directory")
+        .expect("Failed to get home directory, perhaps powershell is not installed?")
+        // we can't do anything if powershell itself is not present. maybe if I can get something
+        // like reqwuest to work correctly maybe then we'll have a shot?
         .trim()
         .to_owned();
+
     let download_dir = home_dir.clone() + "/Downloads/";
     let extract_dir = home_dir.clone() + "/Documents/aleph/";
 
     let mut filepath = String::new();
     match download_url(
+        // I guess the next step is to get this link from the scoop manifest
         "https://github.com/jftuga/less-Windows/releases/download/less-v661/less-x64.zip",
         &download_dir,
     ) {
