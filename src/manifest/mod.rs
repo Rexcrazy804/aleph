@@ -54,7 +54,7 @@ pub struct ModuleName {
 #[serde(untagged)]
 pub enum OneOrMany<T> {
     One(T),
-    Many(Vec<T>)
+    Many(Vec<T>),
 }
 
 // I am hungry as fuck, but I just experienced spiritual awakening from writing this structure
@@ -73,7 +73,6 @@ pub struct ArchManifest {
     pub extract_dir: Option<String>,
     pub url: Option<OneOrMany<String>>,
     pub hash: Option<OneOrMany<String>>,
-
     // unimplemnted
     //uninstaller
     //shortcuts

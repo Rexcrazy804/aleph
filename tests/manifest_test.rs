@@ -31,21 +31,21 @@ fn str_or_struct_attributes() {
 
 #[test]
 fn architecture_attribute() {
-    use aleph::manifest::OneOrMany as OM;
     use aleph::manifest::Manifest;
+    use aleph::manifest::OneOrMany as OM;
 
     fn tests() -> Option<()> {
         let data = std::fs::read_to_string("./tests/sample_data/irfanview.json")
             .expect("Failed to retreive sample data");
         let data: Manifest = serde_json::from_str(&data).expect("Failed to parse data\n");
 
-            assert_eq!(
-                OM::Many(vec![
-                    String::from("https://www.irfanview.info/files/iview467_x64.zip"),
-                    String::from("https://www.irfanview.info/files/iview467_plugins_x64.zip")
-                ]),
-                data.architecture?.x86_65?.url?
-            );
+        assert_eq!(
+            OM::Many(vec![
+                String::from("https://www.irfanview.info/files/iview467_x64.zip"),
+                String::from("https://www.irfanview.info/files/iview467_plugins_x64.zip")
+            ]),
+            data.architecture?.x86_65?.url?
+        );
 
         Some(())
     }
