@@ -1,8 +1,5 @@
-mod manifest;
-mod powershell;
 mod zipper;
-
-use powershell::{installer, utilities};
+use aleph::powershell::{installer, utilities};
 
 fn main() {
     println!("Running on {}", std::env::consts::OS);
