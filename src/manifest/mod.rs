@@ -1,6 +1,13 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(untagged)]
+pub enum OneOrMany<T> {
+    One(T),
+    Many(Vec<T>),
+    // TODO: findout the attributes that need TooMany
+    TooMany(Vec<Vec<T>>),
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Manifest {
@@ -8,12 +15,13 @@ pub struct Manifest {
     pub version: String,
     pub description: String,
     pub homepage: String,
-    //pub license: String,
+    pub license: License,
 
     // rest are optoinal .w.
-    pub bin: Option<OneOrMany<Vec<String>>>,
+    pub bin: Option<OneOrMany<String>>,
     pub depends: Option<OneOrMany<String>>,
     pub env_add_path: Option<String>,
+    // TODO: this must be a hasmap, write a test for this
     pub env_set: Option<OneOrMany<(String, String)>>,
     pub extract_dir: Option<String>,
     pub extract_to: Option<OneOrMany<String>>,
@@ -46,30 +54,36 @@ pub struct Manifest {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(untagged)]
+pub enum License {
+    License(String),
+    Custom(CustomLicense),
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct CustomLicense {
+    pub identifier: String,
+    pub url: String,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct ModuleName {
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-#[serde(untagged)]
-pub enum OneOrMany<T> {
-    One(T),
-    Many(Vec<T>),
-}
-
 // I am hungry as fuck, but I just experienced spiritual awakening from writing this structure
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct Architecture {
     #[serde(rename = "64bit")]
     pub x86_65: Option<ArchManifest>,
     #[serde(rename = "32bit")]
     pub x64: Option<ArchManifest>,
-    pub arm65: Option<ArchManifest>,
+    pub arm64: Option<ArchManifest>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ArchManifest {
-    pub bin: Option<OneOrMany<Vec<String>>>,
+    pub bin: Option<OneOrMany<String>>,
     pub extract_dir: Option<String>,
     pub url: Option<OneOrMany<String>>,
     pub hash: Option<OneOrMany<String>>,
