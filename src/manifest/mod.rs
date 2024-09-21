@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -6,30 +8,26 @@ pub struct Manifest {
     pub version: String,
     pub description: String,
     pub homepage: String,
-    pub license: String,
+    //pub license: String,
 
     // rest are optoinal .w.
-    // NOTE that most of the Vec<T> are likely to fail
-    // will require the followign implementation
-    // https://serde.rs/string-or-struct.html
-    pub bin: Option<OneOrMany<String>>,
+    pub bin: Option<OneOrMany<Vec<String>>>,
     pub depends: Option<OneOrMany<String>>,
     pub env_add_path: Option<String>,
-    // I am not sure if this works the way I hope it works
-    // TODO: Test whether this works in accordance to the manifest
     pub env_set: Option<OneOrMany<(String, String)>>,
     pub extract_dir: Option<String>,
-    pub extract_to: Option<String>,
+    pub extract_to: Option<OneOrMany<String>>,
     pub hash: Option<OneOrMany<String>>,
     pub innosetup: Option<bool>,
     pub notes: Option<OneOrMany<String>>,
     pub psmodule: Option<ModuleName>,
     pub url: Option<OneOrMany<String>>,
+    //pub architecture: Option<HashMap<String, ArchManifest>>,
+    pub architecture: Option<Architecture>,
 
+    #[serde(rename = "##")]
+    pub comment: Option<String>,
     // incomplete implementation
-    // in the scoop manifest comments start with "##" we'll have to make a custom deserializer for
-    // this .w.
-    comment: Option<String>,
     // TODO implement the ones that can be implemeneted :)
     // ignored/unimplemented:
     // autoupdate: AutoUpdate
@@ -47,14 +45,40 @@ pub struct Manifest {
     // persist: Vec<Directory>
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct ModuleName {
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(untagged)]
 pub enum OneOrMany<T> {
     One(T),
     Many(Vec<T>)
+}
+
+// I am hungry as fuck, but I just experienced spiritual awakening from writing this structure
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Architecture {
+    #[serde(rename = "64bit")]
+    pub x86_65: Option<ArchManifest>,
+    #[serde(rename = "32bit")]
+    pub x64: Option<ArchManifest>,
+    pub arm65: Option<ArchManifest>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct ArchManifest {
+    pub bin: Option<OneOrMany<Vec<String>>>,
+    pub extract_dir: Option<String>,
+    pub url: Option<OneOrMany<String>>,
+    pub hash: Option<OneOrMany<String>>,
+
+    // unimplemnted
+    //uninstaller
+    //shortcuts
+    //checkver
+    //installer
+    //pre_install
+    //post_install
 }
