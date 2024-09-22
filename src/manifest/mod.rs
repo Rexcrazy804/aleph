@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
@@ -5,8 +7,17 @@ use serde::{Deserialize, Serialize};
 pub enum OneOrMany<T> {
     One(T),
     Many(Vec<T>),
-    // TODO: findout the attributes that need TooMany
-    TooMany(Vec<Vec<T>>),
+}
+
+// bin attributes are kinda messy so we needa use this enum
+// NOTE I HOPE the other attributes are fine with the normal
+// OneOrMany enum, I have no Idea how I am supposed to handle this .w.
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[serde(untagged)]
+pub enum Bin<T> {
+    One(T),
+    Many(Vec<T>),
+    TooMany(Vec<Bin<T>>),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -18,11 +29,11 @@ pub struct Manifest {
     pub license: License,
 
     // rest are optoinal .w.
-    pub bin: Option<OneOrMany<String>>,
+    pub bin: Option<Bin<String>>,
     pub depends: Option<OneOrMany<String>>,
-    pub env_add_path: Option<String>,
+    pub env_add_path: Option<OneOrMany<String>>,
     // TODO: this must be a hasmap, write a test for this
-    pub env_set: Option<OneOrMany<(String, String)>>,
+    pub env_set: Option<HashMap<String, String>>,
     pub extract_dir: Option<String>,
     pub extract_to: Option<OneOrMany<String>>,
     pub hash: Option<OneOrMany<String>>,
@@ -83,7 +94,7 @@ pub struct Architecture {
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ArchManifest {
-    pub bin: Option<OneOrMany<String>>,
+    pub bin: Option<Bin<String>>,
     pub extract_dir: Option<String>,
     pub url: Option<OneOrMany<String>>,
     pub hash: Option<OneOrMany<String>>,

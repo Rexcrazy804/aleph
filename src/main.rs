@@ -6,8 +6,7 @@ fn main() {
 
     let home_dir = utilities::get_home_directory()
         .expect("Failed to get home directory, perhaps powershell is not installed?")
-        // we can't do anything if powershell itself is not present. maybe if I can get something
-        // like reqwuest to work correctly maybe then we'll have a shot?
+        // we can't do anything if powershell itself is not present.
         .trim()
         .to_owned();
 

@@ -85,6 +85,7 @@
           projectRootFile = "./.git/config";
           programs = {
             alejandra.enable = true;
+            prettier.enable = true;
             rustfmt = {
               enable = true;
               package = pkgs.rust-bin.stable.latest.rustfmt;

@@ -1,3 +1,6 @@
+use aleph::manifest::Bin;
+use aleph::manifest::OneOrMany as OM;
+use aleph::manifest::{CustomLicense, License, Manifest};
 use std::fs;
 
 // TODO: cover every possible attribute in as many different ways as possible
@@ -27,8 +30,6 @@ use std::fs;
 
 #[test]
 fn required_attributes() {
-    use aleph::manifest::{License, Manifest};
-
     let data = fs::read_to_string("./tests/sample_data/required_attrs.json")
         .expect("Failed to retreive sample data");
     let data: Manifest = serde_json::from_str(&data).expect(".w.");
@@ -41,9 +42,6 @@ fn required_attributes() {
 
 #[test]
 fn str_or_struct_attributes() {
-    use aleph::manifest::Manifest;
-    use aleph::manifest::OneOrMany as OM;
-
     let data = fs::read_to_string("./tests/sample_data/str_or_struct_attrs.json")
         .expect("Failed to retreive sample data");
     let data: Manifest = serde_json::from_str(&data).expect("Failed to parse data\n");
@@ -53,14 +51,11 @@ fn str_or_struct_attributes() {
         data.url.unwrap()
     );
     assert_eq!("cowsay-psh-master", data.extract_dir.unwrap());
-    assert_eq!(OM::Many(vec!["cowsay.ps1".to_string()]), data.bin.unwrap());
+    assert_eq!(Bin::Many(vec!["cowsay.ps1".to_string()]), data.bin.unwrap());
 }
 
 #[test]
 fn architecture_attribute() {
-    use aleph::manifest::{License, Manifest, CustomLicense};
-    use aleph::manifest::OneOrMany as OM;
-
     let data = fs::read_to_string("./tests/sample_data/irfanview.json")
         .expect("Failed to retreive sample data");
     let data: Manifest = serde_json::from_str(&data).expect("Failed to parse data\n");
@@ -96,13 +91,35 @@ fn architecture_attribute() {
         data.clone().x64.unwrap().hash
     );
     assert_eq!(
-        Some(OM::TooMany(vec![vec![
+        Some(Bin::TooMany(vec![Bin::Many(vec![
             String::from("i_view32.exe"),
             String::from("irfanview")
-        ]])),
+        ])])),
         data.clone().x64.unwrap().bin
     );
 
     // TODO add some dummy data in the file for arm64 make test cases
     assert_eq!(None, data.clone().arm64);
+}
+
+#[test]
+#[ignore] // we don't want this test to run by default [its expensive kinda .w.]
+fn bulk_parse() {
+    let data_dir = fs::read_dir("./tests/bulk_data/").expect("Failed to read data directory");
+
+    let mut file_count = 0;
+    for data in data_dir {
+        let Ok(data) = data else {
+            continue;
+        };
+
+        file_count += 1;
+        let file_name = data.file_name();
+        let data = fs::read_to_string(data.path()).expect("Failed to read file");
+
+        let data: Manifest = serde_json::from_str(&data).unwrap();
+        println!("{file_name:?}: desc: {}", data.description);
+    }
+
+    println!("parsed {file_count} files")
 }
