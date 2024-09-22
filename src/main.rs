@@ -1,5 +1,5 @@
-mod zipper;
 use aleph::powershell::{installer, utilities};
+use aleph::zipper;
 
 fn main() {
     println!("Running on {}", std::env::consts::OS);

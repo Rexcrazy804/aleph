@@ -28,7 +28,7 @@ pub enum WayTooMany<T> {
     TooMany(Vec<WayTooMany<T>>),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
     // REQUIRED properties
     pub version: String,
