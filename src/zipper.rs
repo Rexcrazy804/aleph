@@ -1,6 +1,6 @@
 // might have to reloate this later
 use std::fs::{self, File};
-use std::io;
+use std::io::{self, Cursor};
 use std::path::PathBuf;
 
 pub fn unzip(archive: &str, extract_location: &str) -> Result<String, String> {
@@ -62,4 +62,38 @@ pub fn unzip(archive: &str, extract_location: &str) -> Result<String, String> {
         .last()
         .unwrap();
     Ok(extracted_root_dir.to_owned())
+}
+
+pub fn unzip_alt(
+    file_path: &str,
+    extract_directory: &str,
+    dir_to_extract: Option<&String>,
+) -> String {
+    //! WARNING THIS FUNCTION CAN PANIC!
+    let archive: Vec<u8> = std::fs::read(file_path).expect("Failed to read file");
+
+    dbg!(file_path);
+    let target_dir = match dir_to_extract {
+        Some(dir) => extract_directory.to_owned() + dir,
+        None => {
+            let (folder_name, _file_type) = file_path
+                .split('/')
+                .last()
+                // rare for this to happen .w.
+                // TODO brute force this
+                .unwrap_or("bob.zip")
+                .split_once('.')
+                .unwrap();
+
+            extract_directory.to_owned() + folder_name
+        }
+    };
+
+    // The third parameter allows you to strip away toplevel directories.
+    // If `archive` contained a single directory, its contents would be extracted instead.
+    zip_extract::extract(Cursor::new(archive), &PathBuf::from(&target_dir), true)
+        .expect("Failed to extract");
+
+    // TODO do something with dir_to_extract :)
+    target_dir
 }

@@ -86,21 +86,21 @@ fn architecture_attribute() {
             String::from("https://www.irfanview.info/files/iview467.zip"),
             String::from("https://www.irfanview.info/files/iview467_plugins.zip")
         ])),
-        data.clone().x64.unwrap().url
+        data.clone().x86.unwrap().url
     );
     assert_eq!(
         Some(OM::Many(vec![
             String::from("75aeec57c780ae7ad6e15f750e34f62abedb1569efce1bfc2d6023d4a045f5a3"),
             String::from("9d62c7b44c8d83c617758d90d373b3dd25dfa9af90a45a2c9629c4998b35d29a")
         ])),
-        data.clone().x64.unwrap().hash
+        data.clone().x86.unwrap().hash
     );
     assert_eq!(
         Some(WayTooMany::TooMany(vec![WayTooMany::Many(vec![
             String::from("i_view32.exe"),
             String::from("irfanview")
         ])])),
-        data.clone().x64.unwrap().bin
+        data.clone().x86.unwrap().bin
     );
 
     // TODO add some dummy data in the file for arm64 make test cases

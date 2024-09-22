@@ -7,7 +7,7 @@ pub struct Architecture {
     #[serde(rename = "64bit")]
     pub x86_64: Option<ArchManifest>,
     #[serde(rename = "32bit")]
-    pub x64: Option<ArchManifest>,
+    pub x86: Option<ArchManifest>,
     pub arm64: Option<ArchManifest>,
 }
 

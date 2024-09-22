@@ -26,6 +26,7 @@ dependencies = [
  "serde",
  "serde_json",
  "zip",
+ "zip-extract",
 ]
 
 [[package]]
@@ -638,6 +639,17 @@ dependencies = [
  "zeroize",
  "zopfli",
  "zstd",
+]
+
+[[package]]
+name = "zip-extract"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25a8c9e90f27d1435088a7b540b6cc8ae6ee525d992a695f16012d2f365b3d3c"
+dependencies = [
+ "log",
+ "thiserror",
+ "zip",
 ]
 
 [[package]]

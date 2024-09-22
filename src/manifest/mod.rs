@@ -3,7 +3,7 @@ pub mod installer;
 pub mod license;
 pub mod shortcuts;
 
-use architecture::Architecture;
+use architecture::{ArchManifest, Architecture};
 use installer::{Installer, Script};
 use license::License;
 use serde::{Deserialize, Serialize};
@@ -73,4 +73,37 @@ pub struct Manifest {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct ModuleName {
     pub name: String,
+}
+
+impl Manifest {
+    pub fn get_url(&self) -> OneOrMany<String> {
+        let None = &self.url else {
+            return self.url.clone().unwrap();
+        };
+
+        let Some(arch) = &self.architecture else {
+            panic!("No URL FOUND")
+        };
+
+        let arch = arch.clone();
+        let os_arch = std::env::consts::ARCH;
+        if os_arch == "x86" {
+            let Some(ArchManifest { url, .. }) = arch.x86 else {
+                panic!("No URL FOUND")
+            };
+            url.unwrap()
+        } else if os_arch == "x86_64" {
+            let Some(ArchManifest { url, .. }) = arch.x86_64 else {
+                panic!("No URL FOUND")
+            };
+            url.unwrap()
+        } else if os_arch == "aarch64" {
+            let Some(ArchManifest { url, .. }) = arch.arm64 else {
+                panic!("No URL FOUND")
+            };
+            url.unwrap()
+        } else {
+            panic!("NO URL");
+        }
+    }
 }
