@@ -50,8 +50,8 @@ fn str_or_struct_attributes() {
         OM::One("https://github.com/lukesampson/cowsay-psh/archive/master.zip".to_owned()),
         data.url.unwrap()
     );
-    assert_eq!("cowsay-psh-master", data.extract_dir.unwrap());
-    assert_eq!(Bin::Many(vec!["cowsay.ps1".to_string()]), data.bin.unwrap());
+    assert_eq!(OM::One(String::from("cowsay-psh-master")), data.extract_dir.unwrap());
+    assert_eq!(Bin::Many(vec![String::from("cowsay.ps1")]), data.bin.unwrap());
 }
 
 #[test]
@@ -62,8 +62,8 @@ fn architecture_attribute() {
 
     assert_eq!(
         License::Custom(CustomLicense {
-            identifier: String::from("Freeware"),
-            url: String::from("https://www.irfanview.com/eula.htm"),
+            identifier: Some(String::from("Freeware")),
+            url: Some(String::from("https://www.irfanview.com/eula.htm")),
         }),
         data.license
     );
@@ -105,7 +105,8 @@ fn architecture_attribute() {
 #[test]
 #[ignore] // we don't want this test to run by default [its expensive kinda .w.]
 fn bulk_parse() {
-    let data_dir = fs::read_dir("./tests/bulk_data/").expect("Failed to read data directory");
+    // hardcoding this to point to the main scoop bucket so that I can actually parse EVERYTHING
+    let data_dir = fs::read_dir("Z:/home/rexies/temp/Main/bucket/").expect("Failed to read data directory");
 
     let mut file_count = 0;
     for data in data_dir {
@@ -114,11 +115,11 @@ fn bulk_parse() {
         };
 
         file_count += 1;
-        let file_name = data.file_name();
-        let data = fs::read_to_string(data.path()).expect("Failed to read file");
+        println!("{:?}", data.file_name());
 
+        let data = fs::read_to_string(data.path()).expect("Failed to read file");
         let data: Manifest = serde_json::from_str(&data).unwrap();
-        println!("{file_name:?}: desc: {}", data.description);
+        println!("desc: {}", data.description);
     }
 
     println!("parsed {file_count} files")

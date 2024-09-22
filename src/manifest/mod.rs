@@ -32,9 +32,9 @@ pub struct Manifest {
     pub bin: Option<Bin<String>>,
     pub depends: Option<OneOrMany<String>>,
     pub env_add_path: Option<OneOrMany<String>>,
-    // TODO: this must be a hasmap, write a test for this
+    // TODO: this must be a hashmap, write a test for this
     pub env_set: Option<HashMap<String, String>>,
-    pub extract_dir: Option<String>,
+    pub extract_dir: Option<OneOrMany<String>>,
     pub extract_to: Option<OneOrMany<String>>,
     pub hash: Option<OneOrMany<String>>,
     pub innosetup: Option<bool>,
@@ -73,8 +73,8 @@ pub enum License {
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct CustomLicense {
-    pub identifier: String,
-    pub url: String,
+    pub identifier: Option<String>,
+    pub url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -95,7 +95,7 @@ pub struct Architecture {
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ArchManifest {
     pub bin: Option<Bin<String>>,
-    pub extract_dir: Option<String>,
+    pub extract_dir: Option<OneOrMany<String>>,
     pub url: Option<OneOrMany<String>>,
     pub hash: Option<OneOrMany<String>>,
     // unimplemnted
