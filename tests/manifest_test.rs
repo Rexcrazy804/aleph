@@ -1,6 +1,5 @@
-use aleph::manifest::Bin;
-use aleph::manifest::OneOrMany as OM;
-use aleph::manifest::{CustomLicense, License, Manifest};
+use aleph::manifest::license::{CustomLicense, License};
+use aleph::manifest::{Manifest, OneOrMany as OM, WayTooMany};
 use std::fs;
 
 // TODO: cover every possible attribute in as many different ways as possible
@@ -50,8 +49,14 @@ fn str_or_struct_attributes() {
         OM::One("https://github.com/lukesampson/cowsay-psh/archive/master.zip".to_owned()),
         data.url.unwrap()
     );
-    assert_eq!(OM::One(String::from("cowsay-psh-master")), data.extract_dir.unwrap());
-    assert_eq!(Bin::Many(vec![String::from("cowsay.ps1")]), data.bin.unwrap());
+    assert_eq!(
+        OM::One(String::from("cowsay-psh-master")),
+        data.extract_dir.unwrap()
+    );
+    assert_eq!(
+        WayTooMany::Many(vec![String::from("cowsay.ps1")]),
+        data.bin.unwrap()
+    );
 }
 
 #[test]
@@ -74,7 +79,7 @@ fn architecture_attribute() {
             String::from("https://www.irfanview.info/files/iview467_x64.zip"),
             String::from("https://www.irfanview.info/files/iview467_plugins_x64.zip")
         ])),
-        data.clone().x86_65.unwrap().url
+        data.clone().x86_64.unwrap().url
     );
     assert_eq!(
         Some(OM::Many(vec![
@@ -91,7 +96,7 @@ fn architecture_attribute() {
         data.clone().x64.unwrap().hash
     );
     assert_eq!(
-        Some(Bin::TooMany(vec![Bin::Many(vec![
+        Some(WayTooMany::TooMany(vec![WayTooMany::Many(vec![
             String::from("i_view32.exe"),
             String::from("irfanview")
         ])])),
@@ -106,7 +111,8 @@ fn architecture_attribute() {
 #[ignore] // we don't want this test to run by default [its expensive kinda .w.]
 fn bulk_parse() {
     // hardcoding this to point to the main scoop bucket so that I can actually parse EVERYTHING
-    let data_dir = fs::read_dir("Z:/home/rexies/temp/Main/bucket/").expect("Failed to read data directory");
+    let data_dir =
+        fs::read_dir("Z:/home/rexies/temp/Main/bucket/").expect("Failed to read data directory");
 
     let mut file_count = 0;
     for data in data_dir {
@@ -120,6 +126,17 @@ fn bulk_parse() {
         let data = fs::read_to_string(data.path()).expect("Failed to read file");
         let data: Manifest = serde_json::from_str(&data).unwrap();
         println!("desc: {}", data.description);
+
+        // TEST: Shortcuts
+        // TODO: this works, but I guess it may be better to write a seperate test
+        //if let Some(shortcuts) = data.shortcuts {
+        //    use aleph::manifest::shortcuts::Shortcuts;
+        //    for shortcut in shortcuts {
+        //        if let Shortcuts::Standard([path, label]) = shortcut {
+        //            println!("Path: {path}\nLabel: {label}");
+        //        }
+        //    }
+        //}
     }
 
     println!("parsed {file_count} files")
