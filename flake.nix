@@ -8,8 +8,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    treefmt = {
-      url = "github:numtide/treefmt-nix";
+    git-hooks-nix = {
+      url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -24,7 +24,7 @@
   outputs = {flake-parts, ...} @ inputs:
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
-        inputs.treefmt.flakeModule
+        inputs.git-hooks-nix.flakeModule
       ];
 
       flake = {
@@ -39,6 +39,7 @@
       perSystem = {
         pkgs,
         system,
+        config,
         ...
       }: let
         buildTarget = "x86_64-pc-windows-gnu";
@@ -81,14 +82,25 @@
           overlays = [inputs.rust-overlay.overlays.default];
         };
 
-        treefmt = {
-          projectRootFile = "./.git/config";
-          programs = {
+        pre-commit = {
+          check.enable = true;
+          settings.hooks = let
+            rust = pkgs.rust-bin.stable.latest;
+          in {
             alejandra.enable = true;
-            prettier.enable = true;
             rustfmt = {
               enable = true;
-              package = pkgs.rust-bin.stable.latest.rustfmt;
+              packageOverrides = {
+                rustfmt = rust.rustfmt;
+                cargo = rust.cargo;
+              };
+            };
+            clippy = {
+              enable = true;
+              packageOverrides = {
+                cargo = rust.cargo;
+                clippy = rust.clippy;
+              };
             };
           };
         };
@@ -96,7 +108,14 @@
         packages.default = aleph_wine;
 
         devShells.default = craneLib.devShell {
+          shellHook = ''
+            ${config.pre-commit.installationScript}
+          '';
           inputsFrom = [aleph];
+
+          nativeBuildInputs = [
+            config.pre-commit.settings.enabledPackages
+          ];
 
           inherit depsBuildBuild;
 

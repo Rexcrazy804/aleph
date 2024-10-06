@@ -1,4 +1,5 @@
-/target
 .envrc
+.pre-commit-config.yaml
 /downloads
+/target
 result*
