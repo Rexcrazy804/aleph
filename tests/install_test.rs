@@ -28,6 +28,7 @@ fn installation() {
     install_manifest(&manifest, &home_dir);
 }
 
+// TODO this function better return a Result
 fn install_manifest(manifest: &Manifest, home_dir: &str) {
     let download_dir = home_dir.to_owned() + "/Downloads/";
     let extract_dir = home_dir.to_owned() + "/Documents/aleph/";

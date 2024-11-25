@@ -1,11 +1,15 @@
 pub mod architecture;
+pub mod bin;
 pub mod installer;
 pub mod license;
+pub mod persist;
 pub mod shortcuts;
 
 use architecture::{ArchManifest, Architecture};
+use bin::Binary;
 use installer::{Installer, Script};
 use license::License;
+use persist::Persist;
 use serde::{Deserialize, Serialize};
 use shortcuts::Shortcuts;
 use std::collections::HashMap;
@@ -17,17 +21,6 @@ pub enum OneOrMany<T> {
     Many(Vec<T>),
 }
 
-// bin attributes are kinda messy so we needa use this enum
-// same for persist
-// TODO: come up with a better name for this
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-#[serde(untagged)]
-pub enum WayTooMany<T> {
-    One(T),
-    Many(Vec<T>),
-    TooMany(Vec<WayTooMany<T>>),
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
     // REQUIRED properties
@@ -37,13 +30,13 @@ pub struct Manifest {
     pub license: License,
 
     // rest are optoinal .w.
-    pub bin: Option<WayTooMany<String>>,
+    pub bin: Option<Binary>,
     pub depends: Option<OneOrMany<String>>,
     pub env_add_path: Option<OneOrMany<String>>,
 
     pub extract_dir: Option<OneOrMany<String>>,
     pub extract_to: Option<OneOrMany<String>>,
-    pub persist: Option<WayTooMany<String>>,
+    pub persist: Option<OneOrMany<Persist>>,
     pub hash: Option<OneOrMany<String>>,
     pub innosetup: Option<bool>,
     pub notes: Option<OneOrMany<String>>,

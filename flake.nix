@@ -91,15 +91,13 @@
             rustfmt = {
               enable = true;
               packageOverrides = {
-                rustfmt = rust.rustfmt;
-                cargo = rust.cargo;
+                inherit (rust) rustfmt cargo;
               };
             };
             clippy = {
-              enable = true;
+              enable = false;
               packageOverrides = {
-                cargo = rust.cargo;
-                clippy = rust.clippy;
+                inherit (rust) cargo clippy;
               };
             };
           };

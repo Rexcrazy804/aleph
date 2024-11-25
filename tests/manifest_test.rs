@@ -1,5 +1,5 @@
 use aleph::manifest::license::{CustomLicense, License};
-use aleph::manifest::{Manifest, OneOrMany as OM, WayTooMany};
+use aleph::manifest::{bin::Binary, Manifest, OneOrMany as OM};
 use std::fs;
 
 // TODO: cover every possible attribute in as many different ways as possible
@@ -41,7 +41,7 @@ fn required_attributes() {
 
 #[test]
 fn str_or_struct_attributes() {
-    let data = fs::read_to_string("./tests/sample_data/str_or_struct_attrs.json")
+    let data = fs::read_to_string("./tests/sample_data/cowsay.json")
         .expect("Failed to retreive sample data");
     let data: Manifest = serde_json::from_str(&data).expect("Failed to parse data\n");
 
@@ -53,8 +53,12 @@ fn str_or_struct_attributes() {
         OM::One(String::from("cowsay-psh-master")),
         data.extract_dir.unwrap()
     );
+    println!("{:?}", data.bin);
     assert_eq!(
-        WayTooMany::Many(vec![String::from("cowsay.ps1")]),
+        Binary::Executables(vec![
+            String::from("cowsay.ps1"),
+            String::from("cowthink.ps1"),
+        ]),
         data.bin.unwrap()
     );
 }
@@ -95,49 +99,16 @@ fn architecture_attribute() {
         ])),
         data.clone().x86.unwrap().hash
     );
+
+    //"bin": [["i_view32.exe", "irfanview"]],
     assert_eq!(
-        Some(WayTooMany::TooMany(vec![WayTooMany::Many(vec![
+        Binary::AliasedExecutables(vec![Binary::Executables(vec![
             String::from("i_view32.exe"),
-            String::from("irfanview")
-        ])])),
-        data.clone().x86.unwrap().bin
+            String::from("irfanview"),
+        ])]),
+        data.clone().x86.unwrap().bin.unwrap()
     );
 
     // TODO add some dummy data in the file for arm64 make test cases
     assert_eq!(None, data.clone().arm64);
-}
-
-#[test]
-#[ignore] // we don't want this test to run by default [its expensive kinda .w.]
-fn bulk_parse() {
-    // hardcoding this to point to the main scoop bucket so that I can actually parse EVERYTHING
-    let data_dir =
-        fs::read_dir("Z:/home/rexies/temp/Main/bucket/").expect("Failed to read data directory");
-
-    let mut file_count = 0;
-    for data in data_dir {
-        let Ok(data) = data else {
-            continue;
-        };
-
-        file_count += 1;
-        println!("{:?}", data.file_name());
-
-        let data = fs::read_to_string(data.path()).expect("Failed to read file");
-        let data: Manifest = serde_json::from_str(&data).unwrap();
-        println!("desc: {}", data.description);
-
-        // TEST: Shortcuts
-        // TODO: this works, but I guess it may be better to write a seperate test
-        //if let Some(shortcuts) = data.shortcuts {
-        //    use aleph::manifest::shortcuts::Shortcuts;
-        //    for shortcut in shortcuts {
-        //        if let Shortcuts::Standard([path, label]) = shortcut {
-        //            println!("Path: {path}\nLabel: {label}");
-        //        }
-        //    }
-        //}
-    }
-
-    println!("parsed {file_count} files")
 }
