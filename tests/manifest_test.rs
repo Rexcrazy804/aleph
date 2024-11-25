@@ -40,7 +40,7 @@ fn required_attributes() {
 }
 
 #[test]
-fn str_or_struct_attributes() {
+fn cowsay_bin() {
     let data = fs::read_to_string("./tests/sample_data/cowsay.json")
         .expect("Failed to retreive sample data");
     let data: Manifest = serde_json::from_str(&data).expect("Failed to parse data\n");
