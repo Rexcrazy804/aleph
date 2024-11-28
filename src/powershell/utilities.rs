@@ -5,7 +5,7 @@ pub fn get_home_directory() -> Option<String> {
         return None;
     };
 
-    let home_directory = String::from_utf8(output.stdout).unwrap();
+    let home_directory = String::from_utf8(output.stdout).unwrap().trim().to_string();
     if !home_directory.is_empty() {
         Some(home_directory)
     } else {
