@@ -12,13 +12,16 @@ pub fn append_to_path(home_dir: &str, paths: &Vec<String>) -> std::io::Result<()
         home_dir.to_owned() + "/Documents/PowerShell/Microsoft.PowerShell_profile.ps1";
 
     //let profile_path = "./config.ps1";
-    let ps_profile = match fs::read_to_string(&profile_path) {
+    let mut ps_profile = match fs::read_to_string(&profile_path) {
         Ok(content) => content,
         Err(_) => {
             println!("FILE DOES NOT EXIST: {profile_path}");
             String::from(DEFAULT_PROFILE)
         }
     };
+    if !ps_profile.contains("$env:PATH = (") {
+        ps_profile.push_str(&DEFAULT_PROFILE);
+    }
 
     let mut modified_ps_profile = String::new();
     for line in ps_profile.lines() {
@@ -29,7 +32,7 @@ pub fn append_to_path(home_dir: &str, paths: &Vec<String>) -> std::io::Result<()
             modified_ps_profile.push_str(&(line.to_owned() + "\n"));
             for path in paths {
                 let replaced_path = path.replace(home_dir, "$HOME");
-                // <space><space>"PATH;" +
+                // <space><space>"PATH;"
                 modified_ps_profile
                     .push_str(&("  \"".to_owned() + &replaced_path + ";\"" + " +" + "\n"));
                 //TODO remove duplicate paths and preferably notify that the program has already
