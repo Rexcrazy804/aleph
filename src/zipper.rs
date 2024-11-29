@@ -2,7 +2,7 @@
 use sevenz_rust;
 use std::fs::{self, File};
 use std::io::{self, Cursor};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub fn unzip(archive: &str, extract_location: &str) -> Result<String, String> {
     let Ok(file) = File::open(archive) else {
@@ -117,4 +117,35 @@ fn make_dirname_and_get_file_type(file_path: &str) -> (String, String) {
 
 fn use_sevenz(file_path: &str, target_dir: &str) {
     sevenz_rust::decompress_file(file_path, target_dir).expect("complete");
+
+    if let Err(e) = strip_directory(target_dir) {
+        eprintln!("failed to strip directory with Error: {e}\n");
+    };
+}
+
+/// if the top level of the given directory contains only a single folder
+/// move the contents of that folder onto the parent directory and delete the folder
+fn strip_directory(target_dir: &str) -> io::Result<()> {
+    use fs::read_dir;
+
+    let target_dir = Path::new(target_dir);
+    let entries_count = read_dir(target_dir)?.count();
+    if entries_count != 1 {
+        return Ok(());
+    }
+
+    let lonely_entry = read_dir(target_dir)?.last().unwrap()?;
+
+    if lonely_entry.path().is_dir() {
+        for subdir_entry in fs::read_dir(lonely_entry.path())? {
+            let subdir_entry = subdir_entry?;
+            fs::rename(
+                subdir_entry.path(),
+                target_dir.join(subdir_entry.file_name()),
+            )?
+        }
+        fs::remove_dir(lonely_entry.path())?
+    }
+
+    Ok(())
 }
