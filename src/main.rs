@@ -1,6 +1,3 @@
-use std::alloc::handle_alloc_error;
-use std::iter::once;
-
 use aleph::powershell::{installer, utilities};
 use aleph::zipper;
 
