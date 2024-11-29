@@ -26,9 +26,6 @@ pub fn append_to_path(home_dir: &str, paths: &Vec<String>) -> std::io::Result<()
     let mut modified_ps_profile = String::new();
     for line in ps_profile.lines() {
         if line.contains("$env:PATH = (") {
-            // TODO if the file does not have a $env:PATH = (
-            // i.e. we are touching a profile that was created by the user and not us
-            // handling such a situation should be easy I'll leave it to Sanoy :D
             modified_ps_profile.push_str(&(line.to_owned() + "\n"));
             for path in paths {
                 let replaced_path = path.replace(home_dir, "$HOME");
