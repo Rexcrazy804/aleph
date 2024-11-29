@@ -1,4 +1,5 @@
 // might have to reloate this later
+use sevenz_rust;
 use std::fs::{self, File};
 use std::io::{self, Cursor};
 use std::path::PathBuf;
@@ -64,36 +65,56 @@ pub fn unzip(archive: &str, extract_location: &str) -> Result<String, String> {
     Ok(extracted_root_dir.to_owned())
 }
 
+/// dir_to_extract variable does nothing right now
 pub fn unzip_alt(
     file_path: &str,
     extract_directory: &str,
     dir_to_extract: Option<&String>,
 ) -> String {
-    //! WARNING THIS FUNCTION CAN PANIC!
-    let archive: Vec<u8> = std::fs::read(file_path).expect("Failed to read file");
-
     dbg!(file_path);
-    let target_dir = match dir_to_extract {
-        Some(dir) => extract_directory.to_owned() + dir,
-        None => {
-            let (folder_name, _file_type) = file_path
-                .split('/')
-                .last()
-                // rare for this to happen .w.
-                // TODO brute force this
-                .unwrap_or("bob.zip")
-                .split_once('.')
-                .unwrap();
+    dbg!(extract_directory);
 
-            extract_directory.to_owned() + folder_name
-        }
+    let (file_dir, file_type) = dbg!(make_dirname_and_get_file_type(file_path));
+    let target_dir = format!("{extract_directory}{file_dir}");
+
+    // if we are handling a 7z let sevenz handle that
+    if file_type == "7z" {
+        use_sevenz(file_path, &target_dir);
+        return target_dir;
     };
 
-    // The third parameter allows you to strip away toplevel directories.
-    // If `archive` contained a single directory, its contents would be extracted instead.
+    // if its a zip file, use zip_extract
+    let archive: Vec<u8> = std::fs::read(file_path).expect("Failed to read file");
     zip_extract::extract(Cursor::new(archive), &PathBuf::from(&target_dir), true)
         .expect("Failed to extract");
 
-    // TODO do something with dir_to_extract :)
     target_dir
+}
+
+/// this fucntion take a file path and returns a directory name based off the file name
+/// and the file type of
+fn make_dirname_and_get_file_type(file_path: &str) -> (String, String) {
+    let file_name = file_path
+        .split(['\\', '/']) // fuck windows
+        .last()
+        // rare for this to happen .w.
+        // TODO brute force this
+        .unwrap_or("bob.zip");
+
+    let buffer = file_name.split('.');
+    let buffer_count = buffer.clone().count();
+
+    let file_dir = buffer
+        .clone()
+        .take(buffer_count - 1)
+        .collect::<String>()
+        .replace(".", "_");
+
+    let file_type = buffer.last().unwrap().to_string();
+
+    (file_dir, file_type)
+}
+
+fn use_sevenz(file_path: &str, target_dir: &str) {
+    sevenz_rust::decompress_file(file_path, target_dir).expect("complete");
 }
