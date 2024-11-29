@@ -6,7 +6,7 @@ use crate::{
 
 // DEBUG SYSMBOLS
 // all must be set to FALSE after debugging
-const DEBUG_NOINSTALL: bool = true;
+const DEBUG_NOINSTALL: bool = false;
 const DEBUG_PRINT: bool = true;
 
 // TODO Replace error return type to a concrete enum that can account for the different errors
