@@ -1,5 +1,5 @@
 use aleph::manifest::{bin::Binary, Manifest};
-use std::fs;
+use std::{fmt::Binary as FUCKOFF, fs};
 
 #[test]
 fn apngasm_bin() {
