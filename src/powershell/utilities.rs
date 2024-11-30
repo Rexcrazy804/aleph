@@ -1,16 +1,15 @@
 use std::process::Command;
 
-pub fn get_home_directory() -> Option<String> {
-    let Ok(output) = Command::new("pwsh").args(["-c", "echo", "$home"]).output() else {
-        return None;
-    };
+// actually the only possible way for this to fail is for powershell to not be installed
+// in the operating system
+pub fn get_home_directory() -> String {
+    let output = Command::new("pwsh")
+        .args(["-c", "echo", "$home"])
+        .output()
+        .expect("Failed to execute process [is powershell installed?]");
 
     let home_directory = String::from_utf8(output.stdout).unwrap().trim().to_string();
-    if !home_directory.is_empty() {
-        Some(home_directory)
-    } else {
-        None
-    }
+    home_directory
 }
 
 pub fn download_url(url: &str, download_location: &str) -> Result<String, String> {

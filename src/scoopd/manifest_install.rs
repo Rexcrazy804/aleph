@@ -1,6 +1,9 @@
 use crate::{
     manifest::{bin::Binary, Manifest, OneOrMany},
-    powershell::{installer::append_to_path, utilities::download_url},
+    powershell::{
+        installer::append_to_path,
+        utilities::{download_url, get_home_directory},
+    },
     zipper::unzip_alt,
 };
 
@@ -10,7 +13,9 @@ const DEBUG_NOINSTALL: bool = false;
 const DEBUG_PRINT: bool = true;
 
 // TODO Replace error return type to a concrete enum that can account for the different errors
-pub fn manifest_installer(manifest: &Manifest, home_dir: &str) -> Result<(), String> {
+// no sanoy this is not for you
+pub fn manifest_installer(manifest: &Manifest) -> Result<(), String> {
+    let home_dir = get_home_directory();
     let download_dir = dbg!(format!("{home_dir}{}", "\\Downloads\\"));
     let extract_dir = dbg!(format!("{home_dir}{}", "\\Documents\\aleph\\"));
 
@@ -89,7 +94,7 @@ pub fn manifest_installer(manifest: &Manifest, home_dir: &str) -> Result<(), Str
             let exutables =
                 get_executables(&dir, manifest.bin.clone().expect("No Binary found")).unwrap();
             if !DEBUG_NOINSTALL {
-                append_to_path(home_dir, &exutables).expect("failed to append to path")
+                append_to_path(&home_dir, &exutables).expect("failed to append to path")
             }
         }
         OneOrMany::Many(dirs) => {
@@ -98,7 +103,7 @@ pub fn manifest_installer(manifest: &Manifest, home_dir: &str) -> Result<(), Str
                     get_executables(&dir, manifest.bin.clone().expect("No Binary found")).unwrap();
 
                 if !DEBUG_NOINSTALL {
-                    append_to_path(home_dir, &exutables).expect("Failed to append to path")
+                    append_to_path(&home_dir, &exutables).expect("Failed to append to path")
                 }
             }
         }

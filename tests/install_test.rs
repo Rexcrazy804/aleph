@@ -1,7 +1,4 @@
-use aleph::{
-    manifest::Manifest, powershell::utilities::get_home_directory,
-    scoopd::manifest_install::manifest_installer,
-};
+use aleph::{manifest::Manifest, scoopd::manifest_install::manifest_installer};
 
 #[test]
 #[ignore]
@@ -16,12 +13,10 @@ fn installation() {
     const LESS_MANIFEST: &'static str = "./tests/sample_data/less.json";
     const FFMPEG_MANIFEST: &'static str = "./tests/sample_data/ffmpeg.json";
 
-    let home_dir = get_home_directory().expect("Failed to get homeDIR");
-
     if !DEBUG_SKIP_COWSAY {
         let manifest = read_to_string(COWSAY_MANIFEST).expect("Failed to read file");
         let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
-        if let Err(error) = manifest_installer(&manifest, &home_dir) {
+        if let Err(error) = manifest_installer(&manifest) {
             eprintln!("{error}")
         }
     }
@@ -29,7 +24,7 @@ fn installation() {
     if !DEBUG_SKIP_LESS {
         let manifest = read_to_string(LESS_MANIFEST).expect("Failed to read file");
         let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
-        if let Err(error) = manifest_installer(&manifest, &home_dir) {
+        if let Err(error) = manifest_installer(&manifest) {
             eprintln!("{error}")
         }
     }
@@ -37,7 +32,7 @@ fn installation() {
     if !DEBUG_SKIP_FFMPEG {
         let manifest = read_to_string(FFMPEG_MANIFEST).expect("Failed to read file");
         let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
-        if let Err(error) = manifest_installer(&manifest, &home_dir) {
+        if let Err(error) = manifest_installer(&manifest) {
             eprintln!("{error}")
         }
     }
