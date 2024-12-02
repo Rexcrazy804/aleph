@@ -23,20 +23,36 @@ pub fn append_to_path(home_dir: &str, paths: &Vec<String>) -> std::io::Result<()
     }
 
     let mut modified_ps_profile = String::new();
+    let mut intermediate_path_buffer: Vec<String> = Vec::new();
+    for path in paths {
+        let replaced_path = path.replace(home_dir, "$HOME");
+        // <space><space>"PATH;" +
+        intermediate_path_buffer.push("  \"".to_owned() + &replaced_path + ";\"" + " +");
+        //TODO remove duplicate paths and preferably notify that the program has already
+        //been installed (? dk how that would happen) if there exists a corresponding path
+    }
+    let mut latch = false;
+
     for line in ps_profile.lines() {
         if line.contains("$env:PATH = (") {
+            latch = true;
             modified_ps_profile.push_str(&(line.to_owned() + "\n"));
-            for path in paths {
-                let replaced_path = path.replace(home_dir, "$HOME");
-                // <space><space>"PATH;" +
-                modified_ps_profile
-                    .push_str(&("  \"".to_owned() + &replaced_path + ";\"" + " +" + "\n"));
-                //TODO remove duplicate paths and preferably notify that the program has already
-                //been installed (? dk how that would happen) if there exists a corresponding path
-            }
             continue;
         }
-        modified_ps_profile.push_str(&(line.to_owned() + "\n"));
+        if line.contains("$env:PATH)") {
+            latch = false;
+            intermediate_path_buffer.sort();
+            intermediate_path_buffer.dedup();
+            for line in intermediate_path_buffer.clone() {
+                modified_ps_profile.push_str(&(line + "\n"));
+            }
+        }
+
+        if latch {
+            intermediate_path_buffer.push(line.to_owned());
+        } else {
+            modified_ps_profile.push_str(&(line.to_owned() + "\n"));
+        }
     }
 
     fs::write(profile_path, modified_ps_profile)?;
