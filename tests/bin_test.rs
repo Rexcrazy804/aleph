@@ -11,17 +11,34 @@ fn apngasm_bin() {
     //    "bin\\apngasm.exe",
     //    [
     //        "bin\\apngasm.exe",
-    //        "apngasm-cli"
+    //        "apngasm-cli",
     //        "--arg1",
     //        "--arg2",
     //        "--arg3"
-    //    ]
+    //    ],
+    //    "bin\\apngasm2.exe",
+    //    [
+    //        "bin\\apngasm2.exe",
+    //        "apngasm-cli",
+    //        "--arg1",
+    //        "--arg2",
+    //        "--arg3"
+    //    ],
     //]
+
     assert_eq!(
         Binary::AliasedExecutables(vec![
             Binary::Executable(String::from("bin\\apngasm.exe")),
             Binary::Executables(vec![
                 String::from("bin\\apngasm.exe"),
+                String::from("apngasm-cli"),
+                String::from("--arg1"),
+                String::from("--arg2"),
+                String::from("--arg3")
+            ]),
+            Binary::Executable(String::from("bin\\apngasm2.exe")),
+            Binary::Executables(vec![
+                String::from("bin\\apngasm2.exe"),
                 String::from("apngasm-cli"),
                 String::from("--arg1"),
                 String::from("--arg2"),
