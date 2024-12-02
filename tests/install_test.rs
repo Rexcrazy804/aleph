@@ -5,9 +5,9 @@ use aleph::{manifest::Manifest, scoopd::manifest_install::manifest_installer};
 fn installation() {
     use std::fs::read_to_string;
 
-    const DEBUG_SKIP_COWSAY: bool = true;
+    const DEBUG_SKIP_COWSAY: bool = false;
     const DEBUG_SKIP_LESS: bool = true;
-    const DEBUG_SKIP_FFMPEG: bool = false;
+    const DEBUG_SKIP_FFMPEG: bool = true;
 
     const COWSAY_MANIFEST: &'static str = "./tests/sample_data/cowsay.json";
     const LESS_MANIFEST: &'static str = "./tests/sample_data/less.json";
