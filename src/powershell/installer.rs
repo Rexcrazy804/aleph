@@ -28,8 +28,6 @@ pub fn append_to_path(home_dir: &str, paths: &Vec<String>) -> std::io::Result<()
         let replaced_path = path.replace(home_dir, "$HOME");
         // <space><space>"PATH;" +
         intermediate_path_buffer.push("  \"".to_owned() + &replaced_path + ";\"" + " +");
-        //TODO remove duplicate paths and preferably notify that the program has already
-        //been installed (? dk how that would happen) if there exists a corresponding path
     }
     let mut paths_entry_flag = false;
 
@@ -42,7 +40,14 @@ pub fn append_to_path(home_dir: &str, paths: &Vec<String>) -> std::io::Result<()
         if line.contains("$env:PATH)") {
             paths_entry_flag = false;
             intermediate_path_buffer.sort();
-            intermediate_path_buffer.dedup();
+            intermediate_path_buffer.dedup_by(|a, b| {
+                if a == b {
+                    println!("path {a} already installed ");
+                    true
+                } else {
+                    false
+                }
+            });
             for line in intermediate_path_buffer.clone() {
                 modified_ps_profile.push_str(&(line + "\n"));
             }
