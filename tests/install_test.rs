@@ -13,6 +13,7 @@ fn installation() {
     const LESS_MANIFEST: &'static str = "./tests/sample_data/less.json";
     const FFMPEG_MANIFEST: &'static str = "./tests/sample_data/ffmpeg.json";
 
+    // TODO Make a function for this repeated bs
     if !DEBUG_SKIP_COWSAY {
         let manifest = read_to_string(COWSAY_MANIFEST).expect("Failed to read file");
         let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
