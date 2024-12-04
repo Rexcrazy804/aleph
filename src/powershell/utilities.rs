@@ -57,12 +57,27 @@ fn get_filename(url: &str) -> Option<String> {
 // repsonbile for replacing powerhsell $variables with corresponding values on the fly
 // I am thinking of a function that takes a string and HashMap<"variablename" : "Value">
 // with optional fields to then look for and replace $variable instances with their value
-fn extract_msi(file: &str) -> Option<String> {
-    //let Ok(output) = Command::new("pwsh")
-    //    .args(["-c", "Invoke-WebRequest", url, "-OutFile ", &file_path])
-    //    .output()
-    //else {
-    //    return Err("Failed to execute request".to_string());
-    //};
-    todo!();
+pub fn extract_msi(file_path: &str, target_dir: &str) {
+    //$MsiPath = 'msiexec.exe'
+    //    $ArgList = @('/a', $Path, '/qn', "TARGETDIR=$DestinationPath\SourceDir")
+    //}
+
+    let Ok(output) = Command::new("pwsh")
+        .args([
+            "-c",
+            "msiexec.exe",
+            "/a",
+            file_path,
+            "/qn",
+            &format!("TARGETDIR={target_dir}"),
+        ])
+        .output()
+    else {
+        panic!("Failed to execute request");
+    };
+
+    println!("{}", String::from_utf8(output.stdout).unwrap());
+    if !output.stderr.is_empty() {
+        eprintln!("{}", String::from_utf8(output.stderr).unwrap());
+    }
 }

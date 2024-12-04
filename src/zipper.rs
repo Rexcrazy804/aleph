@@ -2,7 +2,10 @@
 use sevenz_rust;
 use std::fs::{self, File};
 use std::io::{self, Cursor};
+use std::os::windows;
 use std::path::{Path, PathBuf};
+
+use crate::powershell;
 
 pub fn unzip(archive: &str, extract_location: &str) -> Result<String, String> {
     let Ok(file) = File::open(archive) else {
@@ -82,16 +85,17 @@ pub fn unzip_alt(
     let (file_dir, file_type) = dbg!(make_dirname_and_get_file_type(file_path));
     let target_dir = format!("{extract_directory}{file_dir}");
 
-    // if we are handling a 7z let sevenz handle that
-    if file_type == "7z" {
-        use_sevenz(file_path, &target_dir);
-        return target_dir;
+    match file_type.as_str() {
+        "7z" => use_sevenz(file_path, &target_dir),
+        "msi" => powershell::utilities::extract_msi(file_path, &target_dir),
+        "zip" => {
+            // if its a zip file, use zip_extract
+            let archive: Vec<u8> = std::fs::read(file_path).expect("Failed to read file");
+            zip_extract::extract(Cursor::new(archive), &PathBuf::from(&target_dir), true)
+                .expect("Failed to extract");
+        }
+        _ => panic!("Unsupported File Format!"),
     };
-
-    // if its a zip file, use zip_extract
-    let archive: Vec<u8> = std::fs::read(file_path).expect("Failed to read file");
-    zip_extract::extract(Cursor::new(archive), &PathBuf::from(&target_dir), true)
-        .expect("Failed to extract");
 
     target_dir
 }

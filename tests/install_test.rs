@@ -2,7 +2,7 @@ use aleph::{manifest::Manifest, scoopd::manifest_install::manifest_installer};
 
 #[test]
 #[ignore]
-fn installation() {
+fn general_installation_test() {
     use std::fs::read_to_string;
 
     const DEBUG_SKIP_COWSAY: bool = false;
@@ -32,6 +32,23 @@ fn installation() {
 
     if !DEBUG_SKIP_FFMPEG {
         let manifest = read_to_string(FFMPEG_MANIFEST).expect("Failed to read file");
+        let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
+        if let Err(error) = manifest_installer(&manifest) {
+            eprintln!("{error}")
+        }
+    }
+}
+
+#[test]
+#[ignore]
+fn msi_installation_test() {
+    use std::fs::read_to_string;
+
+    const DEBUG_SKIP_7ZIP: bool = false;
+    const _7ZIP_MANIFEST: &'static str = "./tests/sample_data/7zip.json";
+
+    if !DEBUG_SKIP_7ZIP {
+        let manifest = read_to_string(_7ZIP_MANIFEST).expect("Failed to read file");
         let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
         if let Err(error) = manifest_installer(&manifest) {
             eprintln!("{error}")
