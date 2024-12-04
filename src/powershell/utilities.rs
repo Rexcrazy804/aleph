@@ -51,3 +51,18 @@ fn get_filename(url: &str) -> Option<String> {
         None
     }
 }
+
+// First we need to get this to be able to extract simple .msi file from Destination to target
+// Adjacently we'll need to implemnet a helper funtion called String injector that will be
+// repsonbile for replacing powerhsell $variables with corresponding values on the fly
+// I am thinking of a function that takes a string and HashMap<"variablename" : "Value">
+// with optional fields to then look for and replace $variable instances with their value
+fn extract_msi(file: &str) -> Option<String> {
+    //let Ok(output) = Command::new("pwsh")
+    //    .args(["-c", "Invoke-WebRequest", url, "-OutFile ", &file_path])
+    //    .output()
+    //else {
+    //    return Err("Failed to execute request".to_string());
+    //};
+    todo!();
+}
