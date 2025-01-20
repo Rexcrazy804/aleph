@@ -21,10 +21,18 @@ impl Action {
         // the first index(0) contains the full path of the program
         // the second index(1) contains our primary argument [sub command]
         // then third onwards we have the arguments passed to the sub command
+        let mut primary_argument = None;
+        let mut support_arguments = String::from("");
 
-        let mut env_args = env_args;
-        let primary_argument = env_args.nth(1).unwrap();
-        let support_arguments: String = env_args.collect();
+        for argument in env_args.skip(1) {
+            if primary_argument.is_none() {
+                primary_argument = Some(argument);
+            } else {
+                support_arguments += &(argument + " ");
+            }
+        }
+
+        let primary_argument = primary_argument.unwrap();
         let support_arguments = if support_arguments.is_empty() {
             None
         } else {

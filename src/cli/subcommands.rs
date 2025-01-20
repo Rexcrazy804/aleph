@@ -95,9 +95,16 @@ fn install_repo_manifest(pname: Option<&String>) -> Result<(), String> {
     let repo_dir = dbg!(format!(
         "{home_dir}\\Documents\\aleph\\__REPO-masterfile\\bucket"
     ));
-    let manifest_path = dbg!(format!("{repo_dir}\\{pname}.json"));
 
-    let manifest = read_to_string(manifest_path).expect("Failed to read file");
-    let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
-    manifest_installer(&manifest)
+    for package in pname.split_whitespace() {
+        // lets us do stuff like aleph install p1 p2 p3 p4
+        let manifest_path = dbg!(format!("{repo_dir}\\{package}.json"));
+
+        let manifest =
+            read_to_string(manifest_path).expect("Failed to find manifest. Invalid package name?");
+        let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
+        manifest_installer(&manifest)?
+    }
+
+    Ok(())
 }
