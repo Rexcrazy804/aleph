@@ -15,7 +15,7 @@ impl SubCommand {
         match self {
             SubCommand::Help => Ok(display_help()),
             SubCommand::Search => todo!(),
-            SubCommand::Install => todo!(),
+            SubCommand::Install => install_repo_manifest(argument),
             SubCommand::Fetch => fetch_repo(argument),
             SubCommand::Rebuild => todo!(),
         }
@@ -60,6 +60,8 @@ fn fetch_repo(url: Option<&String>) -> Result<(), String> {
         "https://codeload.github.com/ScoopInstaller/Main/zip/refs/heads/master"
     };
 
+    // prolly have to condense this into a config that is readable
+    // maybe
     let home_dir = get_home_directory();
     let download_dir = dbg!(format!("{home_dir}\\Downloads\\"));
     let extract_dir = dbg!(format!(
@@ -77,4 +79,25 @@ fn fetch_repo(url: Option<&String>) -> Result<(), String> {
     // once support for mutliple repos are established
     let _ = unzip_alt(&file_path, &extract_dir, None);
     Ok(())
+}
+
+fn install_repo_manifest(pname: Option<&String>) -> Result<(), String> {
+    use crate::manifest::Manifest;
+    use crate::powershell::utilities::get_home_directory;
+    use crate::scoopd::manifest_install::manifest_installer;
+    use std::fs::read_to_string;
+
+    let Some(pname) = pname else {
+        return Err("package name REQUIRED".to_string());
+    };
+
+    let home_dir = get_home_directory();
+    let repo_dir = dbg!(format!(
+        "{home_dir}\\Documents\\aleph\\__REPO-masterfile\\bucket"
+    ));
+    let manifest_path = dbg!(format!("{repo_dir}\\{pname}.json"));
+
+    let manifest = read_to_string(manifest_path).expect("Failed to read file");
+    let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
+    manifest_installer(&manifest)
 }

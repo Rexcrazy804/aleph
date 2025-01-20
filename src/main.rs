@@ -32,5 +32,7 @@ fn main() {
         .expect("Invalid Subcommand. Use aleph --help for a list of subcommands");
 
     // TODO: Error handling for this
-    let _ = action.dispatch();
+    if let Err(error) = action.dispatch() {
+        eprintln!("{error}");
+    };
 }

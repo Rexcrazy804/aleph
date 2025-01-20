@@ -1,6 +1,5 @@
 mod subcommands;
 use subcommands::SubCommand;
-
 pub struct Action {
     sub_command: SubCommand,
     argument: Option<String>,
@@ -22,15 +21,17 @@ impl Action {
         // the first index(0) contains the full path of the program
         // the second index(1) contains our primary argument [sub command]
         // then third onwards we have the arguments passed to the sub command
+
         let mut env_args = env_args;
         let primary_argument = env_args.nth(1).unwrap();
-        let support_arguments: String = env_args.skip(2).collect();
+        let support_arguments: String = env_args.collect();
         let support_arguments = if support_arguments.is_empty() {
             None
         } else {
             Some(support_arguments)
         };
 
+        dbg!(&support_arguments);
         match primary_argument.as_str() {
             "--help" => Ok(Action::new(SubCommand::Help, None)),
             "install" => Ok(Action::new(SubCommand::Install, support_arguments)),
