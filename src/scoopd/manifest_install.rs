@@ -16,8 +16,8 @@ const DEBUG_PRINT: bool = true;
 // no sanoy this is not for you
 pub fn manifest_installer(manifest: &Manifest) -> Result<(), String> {
     let home_dir = get_home_directory();
-    let download_dir = dbg!(format!("{home_dir}{}", "\\Downloads\\"));
-    let extract_dir = dbg!(format!("{home_dir}{}", "\\Documents\\aleph\\"));
+    let download_dir = dbg!(format!("{home_dir}\\Downloads\\"));
+    let extract_dir = dbg!(format!("{home_dir}\\Documents\\aleph\\"));
 
     let url = manifest.get_url();
 
