@@ -5,7 +5,8 @@ pub(super) enum SubCommand {
     Install,
     Fetch,
 
-    // future
+    // future [eta end of march]
+    #[allow(dead_code)]
     Rebuild,
 }
 
@@ -15,13 +16,13 @@ impl SubCommand {
             SubCommand::Help => Ok(display_help()),
             SubCommand::Search => todo!(),
             SubCommand::Install => todo!(),
-            SubCommand::Fetch => todo!(),
+            SubCommand::Fetch => fetch_repo(argument),
             SubCommand::Rebuild => todo!(),
         }
     }
 }
 
-/// Function that breifly introduces all the subcommands
+/// breifly introduces all the subcommands
 fn display_help() {
     println!("aleph <subcommand> <argument>");
     colorize_print_description(
@@ -47,4 +48,33 @@ fn colorize_print_description(color: &str, command: &str, description: &str) {
     // TODO improve the tabs to be dynamic [something based off the longest command .w.]
     let tabs = if command.len() > 6 { "\t\t" } else { "\t\t\t" };
     println!("\x1b[{color}m{command}\x1b[0m{tabs}- {description}");
+}
+
+fn fetch_repo(url: Option<&String>) -> Result<(), String> {
+    use crate::powershell::utilities::{download_url, get_home_directory};
+    use crate::zipper::unzip_alt;
+
+    let url = if url.is_some() {
+        url.unwrap()
+    } else {
+        "https://codeload.github.com/ScoopInstaller/Main/zip/refs/heads/master"
+    };
+
+    let home_dir = get_home_directory();
+    let download_dir = dbg!(format!("{home_dir}\\Downloads\\"));
+    let extract_dir = dbg!(format!(
+        "{home_dir}\\Documents\\aleph\\__REPO-{}",
+        url.split('/')
+            .last()
+            .expect("Failed to identify bucket name")
+    ));
+
+    let Ok(file_path) = download_url(url, &download_dir) else {
+        return Err("Failed to download File".to_string());
+    };
+
+    // we aren't using the path for the time being but we will need to log it down somwhere
+    // once support for mutliple repos are established
+    let _ = unzip_alt(&file_path, &extract_dir, None);
+    Ok(())
 }

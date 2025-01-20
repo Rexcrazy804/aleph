@@ -65,6 +65,7 @@ pub fn unzip(archive: &str, extract_location: &str) -> Result<String, String> {
     Ok(extracted_root_dir.to_owned())
 }
 
+/// unzips file_path to extract_directory/[dirname] and returns the path to extracted directory
 /// dir_to_extract variable does nothing right now
 pub fn unzip_alt(
     file_path: &str,
@@ -74,6 +75,10 @@ pub fn unzip_alt(
     dbg!(file_path);
     dbg!(extract_directory);
 
+    // I am certain we can skip the make dirname step by reading and tracking the name of the .json
+    // file and then modify the function to extract directly to extract_directory instead of making
+    // a folder on top of etract dir
+    // TODO: add optional argument to explicitly provide filename
     let (file_dir, file_type) = dbg!(make_dirname_and_get_file_type(file_path));
     let target_dir = format!("{extract_directory}{file_dir}");
 

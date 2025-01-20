@@ -2,9 +2,13 @@ use aleph::cli::Action;
 use std::env;
 
 fn main() {
-    // advertizes that the program is running under windows
+    // advertizes the os the program is running on
+
+    #[cfg(target_os = "linux")]
+    panic!("Invalid Platform");
+
     println!(
-        "Running on {}: {}",
+        "Running on {} arch {}",
         std::env::consts::OS,
         std::env::consts::ARCH
     );
@@ -16,7 +20,7 @@ fn main() {
     // [immediate]
     // aleph search <search string>             # same as below
     // aleph install <package name>             # if repo not found at ~/Documents/Aleph/__REPO call aleph fetch
-    // aleph fetch                              # fetches the latest commit from the scoop branch
+    // aleph fetch [opt: <url>]                  # fetches the latest commit from the scoop branch
     // aleph --help                             # displays all the available sub commands
     // aleph <subcommand> --help                # usage information for the subcommand
     // aleph                                    # should just run aleph --help
