@@ -12,8 +12,10 @@ pub fn get_home_directory() -> String {
     home_directory
 }
 
+/// attempts to download the given url to the provided directory and returns the path to the
+/// downloaded file. TODO correct the return type to be a a std::path::PATH
 pub fn download_url(url: &str, download_location: &str) -> Result<String, String> {
-    let filename = get_filename(url).unwrap_or("file.bin".to_string());
+    let filename = get_filename(url).unwrap_or("file.zip".to_string());
 
     println!("Downloading file {filename}");
 
