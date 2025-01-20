@@ -1,3 +1,5 @@
+use std::path::Path;
+
 pub(super) enum SubCommand {
     // help is a special subcommand for the --help flag
     Help,
@@ -14,10 +16,10 @@ impl SubCommand {
     pub fn dispatch(&self, argument: Option<&String>) -> Result<(), String> {
         match self {
             SubCommand::Help => Ok(display_help()),
-            SubCommand::Search => todo!(),
+            SubCommand::Search => search_repo(argument),
             SubCommand::Install => install_repo_manifest(argument),
             SubCommand::Fetch => fetch_repo(argument),
-            SubCommand::Rebuild => todo!(),
+            SubCommand::Rebuild => unimplemented!(""),
         }
     }
 }
@@ -29,24 +31,27 @@ fn display_help() {
         "92",
         "search",
         "search for packages in the current repository",
+        None,
     );
     colorize_print_description(
         "92",
         "install",
         "install packages in the current repository",
+        None,
     );
     colorize_print_description(
         "92",
         "fetch",
         "fetch the latest available version of the repository",
+        None,
     );
-    colorize_print_description("92", "--help", "display this help");
+    colorize_print_description("92", "--help", "display this help", None);
 }
 
-fn colorize_print_description(color: &str, command: &str, description: &str) {
+fn colorize_print_description(color: &str, command: &str, description: &str, tabs: Option<&str>) {
     // whacky way of doing it for the time being
     // TODO improve the tabs to be dynamic [something based off the longest command .w.]
-    let tabs = if command.len() > 6 { "\t\t" } else { "\t\t\t" };
+    let tabs = tabs.unwrap_or(if command.len() > 6 { "\t\t" } else { "\t\t\t" });
     println!("\x1b[{color}m{command}\x1b[0m{tabs}- {description}");
 }
 
@@ -92,6 +97,7 @@ fn install_repo_manifest(pname: Option<&String>) -> Result<(), String> {
     };
 
     let home_dir = get_home_directory();
+    // will need to modify this when multi bucket support is added
     let repo_dir = dbg!(format!(
         "{home_dir}\\Documents\\aleph\\__REPO-masterfile\\bucket"
     ));
@@ -107,4 +113,46 @@ fn install_repo_manifest(pname: Option<&String>) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn search_repo(keywords: Option<&String>) -> Result<(), String> {
+    use crate::manifest::Manifest;
+    use crate::powershell::utilities::get_home_directory;
+
+    let home_dir = get_home_directory();
+    // will need to modify this when multi bucket support is added
+    let repo_dir = dbg!(format!(
+        "{home_dir}\\Documents\\aleph\\__REPO-masterfile\\bucket"
+    ));
+
+    let Some(keywords) = keywords else {
+        return Err("Expected keyword argument for search subcommand".to_string());
+    };
+
+    for entry in std::fs::read_dir(repo_dir).expect("Failed to read Directory") {
+        let entry_path = entry.expect("failed to read entry").path();
+        if entry_path.is_file() {
+            let file_name_str = entry_path
+                .file_name()
+                .unwrap()
+                .to_str()
+                .expect("Failed to convert to string");
+            keywords.split_whitespace().for_each(|word| {
+                if file_name_str.contains(word) {
+                    let manifest_file = std::fs::read_to_string(entry_path.clone())
+                        .expect("Failed to read manifest file");
+                    let manifest: Manifest =
+                        serde_json::from_str(&manifest_file).expect("Failed to parse manifest");
+                    colorize_print_description(
+                        "92",
+                        file_name_str,
+                        &manifest.description,
+                        Some("\t"),
+                    );
+                }
+            });
+        }
+    }
+
+    todo!()
 }
