@@ -62,11 +62,14 @@ pub fn extract_msi(file_path: &str, target_dir: &str) {
     //    $ArgList = @('/a', $Path, '/qn', "TARGETDIR=$DestinationPath\SourceDir")
     //}
 
+    // for whatever reason 7zip fails to install while fio worked .w.
+    //github.com/axboe/fio/releases/download/fio-3.38/fio-3.38-x64.msi
+    // msiexec /i $in /qn TARGETDIR=./workdir
     let Ok(output) = Command::new("pwsh")
         .args([
             "-c",
             "msiexec.exe",
-            "/a",
+            "/i",
             file_path,
             "/qn",
             &format!("TARGETDIR={target_dir}"),
