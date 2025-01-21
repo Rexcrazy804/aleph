@@ -2,8 +2,7 @@ use std::fs;
 
 //Remove specified paths from the user's Powershell environment profile.
 pub fn remove_from_path(home_dir: &str, path: &Vec<String>) -> std::io::Result<()> {
-    let profile_path=
-        home_dir.to_owned() + "/Documents/Powershell/Microsoft.PowerShell_profile.ps1";
+    let profile_path = format!("{home_dir}/Documents/Powershell/Microsoft.PowerShell_profile.ps1");
 
     //Check if the profile file exists
     if !fs::metadata(&profile_path).is_ok() {
@@ -67,5 +66,3 @@ pub fn remove_from_path(home_dir: &str, path: &Vec<String>) -> std::io::Result<(
     println!("Updated PowerShell profile to remove paths.");
     Ok(())
 }
-
-

@@ -4,6 +4,7 @@ pub(super) enum SubCommand {
     Search,
     Install,
     Fetch,
+    Uninstall,
 
     // future [eta end of march]
     #[allow(dead_code)]
@@ -17,6 +18,7 @@ impl SubCommand {
             SubCommand::Search => search_repo(argument),
             SubCommand::Install => install_repo_manifest(argument),
             SubCommand::Fetch => fetch_repo(argument),
+            SubCommand::Uninstall => uninstall_repo_manifest(argument),
             SubCommand::Rebuild => unimplemented!(""),
         }
     }
@@ -108,6 +110,34 @@ fn install_repo_manifest(pname: Option<&String>) -> Result<(), String> {
             read_to_string(manifest_path).expect("Failed to find manifest. Invalid package name?");
         let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
         manifest_installer(&manifest)?
+    }
+
+    Ok(())
+}
+
+fn uninstall_repo_manifest(pname: Option<&String>) -> Result<(), String> {
+    use crate::manifest::Manifest;
+    use crate::powershell::utilities::get_home_directory;
+    use crate::scoopd::manifest_uninstall::manifest_uninstall;
+    use std::fs::read_to_string;
+
+    let Some(pname) = pname else {
+        return Err("Package name REQUIRED".to_string());
+    };
+
+    let home_dir = get_home_directory();
+    let repo_dir = dbg!(format!(
+        "{home_dir}\\Documents\\aleph\\__REPO-masterfile\\bucket"
+    ));
+
+    for package in pname.split_whitespace() {
+        let manifest_path = dbg!(format!("{repo_dir}\\{package}.json"));
+
+        let manifest = read_to_string(&manifest_path)
+            .map_err(|_| format!("Failed to find manifest. Invalid package name: {package}"))?;
+        let manifest: Manifest = serde_json::from_str(&manifest)
+            .map_err(|_| format!("Failed to parse manifest for package: {package}"))?;
+        manifest_uninstall(&manifest)?
     }
 
     Ok(())
