@@ -86,7 +86,10 @@ pub fn unzip_alt(
 
     match file_type.as_str() {
         "7z" => extract_7z(file_path, &target_dir),
-        "msi" => powershell::utilities::extract_msi(file_path, &target_dir),
+        "msi" => {
+            powershell::utilities::extract_msi(file_path, &target_dir);
+            let _ = strip_directory(&target_dir);
+        }
         "zip" => extract_zip(file_path, &target_dir),
         _ => panic!("Unsupported File Format!"),
     };
