@@ -58,6 +58,7 @@ fn get_filename(url: &str) -> Option<String> {
 // I am thinking of a function that takes a string and HashMap<"variablename" : "Value">
 // with optional fields to then look for and replace $variable instances with their value
 pub fn extract_msi(file_path: &str, target_dir: &str) {
+    println!("SUPPORT FOR MSI INSTALLATION IS INCOMPLETE!");
     //$MsiPath = 'msiexec.exe'
     //    $ArgList = @('/a', $Path, '/qn', "TARGETDIR=$DestinationPath\SourceDir")
     //}
