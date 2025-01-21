@@ -51,3 +51,30 @@ fn get_filename(url: &str) -> Option<String> {
         None
     }
 }
+
+// First we need to get this to be able to extract simple .msi file from Destination to target
+// Adjacently we'll need to implemnet a helper funtion called String injector that will be
+// repsonbile for replacing powerhsell $variables with corresponding values on the fly
+// I am thinking of a function that takes a string and HashMap<"variablename" : "Value">
+// with optional fields to then look for and replace $variable instances with their value
+pub fn extract_msi(file_path: &str, target_dir: &str) {
+    println!("WARN support for msi installation is incomplete!");
+    let Ok(output) = Command::new("pwsh")
+        .args([
+            "-c",
+            "msiexec.exe",
+            "/i",
+            file_path,
+            "/qn",
+            &format!("INSTALLDIR={target_dir}"),
+        ])
+        .output()
+    else {
+        panic!("Failed to execute request");
+    };
+
+    println!("{}", String::from_utf8(output.stdout).unwrap());
+    if !output.stderr.is_empty() {
+        eprintln!("{}", String::from_utf8(output.stderr).unwrap());
+    }
+}

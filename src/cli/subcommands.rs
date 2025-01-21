@@ -1,5 +1,3 @@
-use std::path::Path;
-
 pub(super) enum SubCommand {
     // help is a special subcommand for the --help flag
     Help,
@@ -153,6 +151,5 @@ fn search_repo(keywords: Option<&String>) -> Result<(), String> {
             });
         }
     }
-
-    todo!()
+    Ok(())
 }

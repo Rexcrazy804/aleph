@@ -4,6 +4,8 @@ use std::fs::{self, File};
 use std::io::{self, Cursor};
 use std::path::{Path, PathBuf};
 
+use crate::powershell;
+
 pub fn unzip(archive: &str, extract_location: &str) -> Result<String, String> {
     let Ok(file) = File::open(archive) else {
         return Err("invalid File path".to_string());
@@ -70,7 +72,7 @@ pub fn unzip(archive: &str, extract_location: &str) -> Result<String, String> {
 pub fn unzip_alt(
     file_path: &str,
     extract_directory: &str,
-    dir_to_extract: Option<&String>,
+    #[allow(unused_variables)] dir_to_extract: Option<&String>,
 ) -> String {
     dbg!(file_path);
     dbg!(extract_directory);
@@ -82,18 +84,23 @@ pub fn unzip_alt(
     let (file_dir, file_type) = dbg!(make_dirname_and_get_file_type(file_path));
     let target_dir = format!("{extract_directory}{file_dir}");
 
-    // if we are handling a 7z let sevenz handle that
-    if file_type == "7z" {
-        use_sevenz(file_path, &target_dir);
-        return target_dir;
+    match file_type.as_str() {
+        "7z" => extract_7z(file_path, &target_dir),
+        "msi" => {
+            powershell::utilities::extract_msi(file_path, &target_dir);
+            let _ = strip_directory(&target_dir);
+        }
+        "zip" => extract_zip(file_path, &target_dir),
+        _ => panic!("Unsupported File Format!"),
     };
 
-    // if its a zip file, use zip_extract
-    let archive: Vec<u8> = std::fs::read(file_path).expect("Failed to read file");
-    zip_extract::extract(Cursor::new(archive), &PathBuf::from(&target_dir), true)
-        .expect("Failed to extract");
-
     target_dir
+}
+
+fn extract_zip(file_path: &str, target_dir: &String) {
+    let archive: Vec<u8> = std::fs::read(file_path).expect("Failed to read file");
+    zip_extract::extract(Cursor::new(archive), &PathBuf::from(target_dir), true)
+        .expect("Failed to extract");
 }
 
 /// this fucntion take a file path and returns a directory name based off the file name
@@ -120,7 +127,7 @@ fn make_dirname_and_get_file_type(file_path: &str) -> (String, String) {
     (file_dir, file_type)
 }
 
-fn use_sevenz(file_path: &str, target_dir: &str) {
+fn extract_7z(file_path: &str, target_dir: &str) {
     sevenz_rust::decompress_file(file_path, target_dir).expect("complete");
 
     if let Err(e) = strip_directory(target_dir) {

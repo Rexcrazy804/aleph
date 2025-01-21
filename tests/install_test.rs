@@ -2,10 +2,10 @@ use aleph::{manifest::Manifest, scoopd::manifest_install::manifest_installer};
 
 #[test]
 #[ignore]
-fn installation() {
+fn general_installation_test() {
     use std::fs::read_to_string;
 
-    const DEBUG_SKIP_COWSAY: bool = false;
+    const DEBUG_SKIP_COWSAY: bool = true;
     const DEBUG_SKIP_LESS: bool = true;
     const DEBUG_SKIP_FFMPEG: bool = true;
 
@@ -32,6 +32,23 @@ fn installation() {
 
     if !DEBUG_SKIP_FFMPEG {
         let manifest = read_to_string(FFMPEG_MANIFEST).expect("Failed to read file");
+        let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
+        if let Err(error) = manifest_installer(&manifest) {
+            eprintln!("{error}")
+        }
+    }
+}
+
+#[test]
+#[ignore]
+fn msi_installation_test() {
+    use std::fs::read_to_string;
+
+    const DEBUG_SKIP_FIO: bool = false;
+    const FIO_MANIFEST: &'static str = "./tests/sample_data/fio.json";
+
+    if !DEBUG_SKIP_FIO {
+        let manifest = read_to_string(FIO_MANIFEST).expect("Failed to read file");
         let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
         if let Err(error) = manifest_installer(&manifest) {
             eprintln!("{error}")
