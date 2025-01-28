@@ -1,3 +1,6 @@
+use std::hash::Hash;
+use std::path::{Path, PathBuf};
+
 use crate::{
     manifest::{bin::Binary, Manifest, OneOrMany},
     powershell::{
@@ -15,75 +18,90 @@ const DEBUG_PRINT: bool = false;
 // TODO Replace error return type to a concrete enum that can account for the different errors
 // no sanoy this is not for you
 pub fn manifest_installer(manifest: &Manifest) -> Result<(), String> {
-    let home_dir = get_home_directory();
-    let download_dir = format!("{home_dir}\\Downloads\\");
-    let extract_dir = format!("{home_dir}\\Documents\\aleph\\");
+    let home_dir = PathBuf::from(get_home_directory());
+    let root_dir = home_dir.join("Aleph");
+    let download_dir = root_dir.join("Downloads");
+    let symlink_dir = home_dir.join("Documents");
+
+    if let Ok(exists) = root_dir.try_exists() {
+        if !exists {
+            initialize_root_dir(root_dir.clone(), symlink_dir);
+        }
+    } else {
+        panic!("Failed to validate existence of path");
+    }
+    // after this point we should either have a working home directory
+
+    //let download_dir = format!("{home_dir}\\Aleph\\Downloads\\");
+    // let the installer descide where to extract and return the
+    // extracted path
+    //let extract_dir = format!("");
 
     let url = manifest.get_url();
 
     // TODO hash the downloads so that we can extract them
     // into <hash>-filename/ directories like nixos
-    let file_path = match url {
-        OneOrMany::One(url) => OneOrMany::One(download_url(&url, &download_dir)),
-        OneOrMany::Many(urls) => OneOrMany::Many(
-            urls.iter()
-                .map(|url| download_url(url, &download_dir))
-                .collect(),
-        ),
-    };
+    //let file_path = match url {
+    //    OneOrMany::One(url) => OneOrMany::One(download_url(&url, &download_dir)),
+    //    OneOrMany::Many(urls) => OneOrMany::Many(
+    //        urls.iter()
+    //            .map(|url| download_url(url, &download_dir))
+    //            .collect(),
+    //    ),
+    //};
 
-    if DEBUG_PRINT {
-        println!("{file_path:?}");
-    }
+    //if DEBUG_PRINT {
+    //    println!("{file_path:?}");
+    //}
 
-    let extracted_dir = match file_path {
-        OneOrMany::One(file_path) => {
-            let mut manifest_extract_dir = None;
-            if let Some(OneOrMany::One(dir)) = &manifest.extract_dir {
-                manifest_extract_dir = Some(dir);
-            };
+    //let extracted_dir = match file_path {
+    //    OneOrMany::One(file_path) => {
+    //        let mut manifest_extract_dir = None;
+    //        if let Some(OneOrMany::One(dir)) = &manifest.extract_dir {
+    //            manifest_extract_dir = Some(dir);
+    //        };
+    //
+    //        let Ok(file_path) = file_path else {
+    //            panic!("FAILIURE");
+    //        };
+    //
+    //        let result = unzip_alt(&file_path, &extract_dir, manifest_extract_dir);
+    //        OneOrMany::One(result)
+    //    }
+    //
+    //    OneOrMany::Many(file_paths) => {
+    //        let result;
+    //        if let Some(OneOrMany::Many(dirs)) = &manifest.extract_dir {
+    //            result = file_paths
+    //                .iter()
+    //                .zip(dirs)
+    //                .map(|(file_path, m_extract_dir)| {
+    //                    let Ok(file_path) = file_path else {
+    //                        panic!("FAILIURE");
+    //                    };
+    //
+    //                    unzip_alt(file_path, &extract_dir, Some(m_extract_dir))
+    //                })
+    //                .collect();
+    //        } else {
+    //            result = file_paths
+    //                .iter()
+    //                .map(|file_path| {
+    //                    let Ok(file_path) = file_path else {
+    //                        panic!("FAILIURE");
+    //                    };
+    //
+    //                    unzip_alt(file_path, &extract_dir, None)
+    //                })
+    //                .collect()
+    //        };
+    //        OneOrMany::Many(result)
+    //    }
+    //};
 
-            let Ok(file_path) = file_path else {
-                panic!("FAILIURE");
-            };
-
-            let result = unzip_alt(&file_path, &extract_dir, manifest_extract_dir);
-            OneOrMany::One(result)
-        }
-
-        OneOrMany::Many(file_paths) => {
-            let result;
-            if let Some(OneOrMany::Many(dirs)) = &manifest.extract_dir {
-                result = file_paths
-                    .iter()
-                    .zip(dirs)
-                    .map(|(file_path, m_extract_dir)| {
-                        let Ok(file_path) = file_path else {
-                            panic!("FAILIURE");
-                        };
-
-                        unzip_alt(file_path, &extract_dir, Some(m_extract_dir))
-                    })
-                    .collect();
-            } else {
-                result = file_paths
-                    .iter()
-                    .map(|file_path| {
-                        let Ok(file_path) = file_path else {
-                            panic!("FAILIURE");
-                        };
-
-                        unzip_alt(file_path, &extract_dir, None)
-                    })
-                    .collect()
-            };
-            OneOrMany::Many(result)
-        }
-    };
-
-    if DEBUG_PRINT {
-        println!("EXTRACTED DIRECTORY: {extracted_dir:?}");
-    }
+    //if DEBUG_PRINT {
+    //    println!("EXTRACTED DIRECTORY: {extracted_dir:?}");
+    //}
 
     // currently there is no real need to do this but once we start hashing our downloads we might
     // end up
@@ -91,27 +109,69 @@ pub fn manifest_installer(manifest: &Manifest) -> Result<(), String> {
     // TODO do something about shims :')
 
     // NOTE for the time being we'll be using this
-    let _ = match extracted_dir {
-        OneOrMany::One(dir) => {
-            let exutables =
-                get_executables(&dir, manifest.bin.clone().expect("No Binary found")).unwrap();
-            if !DEBUG_NOINSTALL {
-                append_to_path(&home_dir, &exutables).expect("failed to append to path")
-            }
-        }
-        OneOrMany::Many(dirs) => {
-            for dir in dirs {
-                let exutables =
-                    get_executables(&dir, manifest.bin.clone().expect("No Binary found")).unwrap();
-
-                if !DEBUG_NOINSTALL {
-                    append_to_path(&home_dir, &exutables).expect("Failed to append to path")
-                }
-            }
-        }
-    };
+    //let _ = match extracted_dir {
+    //    OneOrMany::One(dir) => {
+    //        let exutables =
+    //            get_executables(&dir, manifest.bin.clone().expect("No Binary found")).unwrap();
+    //        if !DEBUG_NOINSTALL {
+    //            append_to_path(&home_dir, &exutables).expect("failed to append to path")
+    //        }
+    //    }
+    //    OneOrMany::Many(dirs) => {
+    //        for dir in dirs {
+    //            let exutables =
+    //                get_executables(&dir, manifest.bin.clone().expect("No Binary found")).unwrap();
+    //
+    //            if !DEBUG_NOINSTALL {
+    //                append_to_path(&home_dir, &exutables).expect("Failed to append to path")
+    //            }
+    //        }
+    //    }
+    //};
+    //
 
     Ok(())
+}
+
+/// this function creates the aleph root directory and popluates it with the required directory
+/// structure (TODO): additionally appends the Current/ folder of aleph to env:PATH
+fn initialize_root_dir(root_path: PathBuf, symlink_path: PathBuf) {
+    // unsure whether this function should have a return type
+    // since if anything fails here the programs stops execution
+    // so if this function executes successfully it can be assumed
+    // everything went well
+
+    use std::fs::create_dir;
+    use std::os::windows::fs::symlink_dir;
+
+    println!("Aleph root not found");
+    create_dir(root_path.clone()).expect("Failed to create Aleph Root directory");
+    println!("Created aleph root at {root_path:?}");
+
+    create_dir(root_path.join("Buckets")).expect("Failed to create Aleph/Buckets/");
+    create_dir(root_path.join("Downloads")).expect("Failed to create Aleph/Downloads/");
+    create_dir(root_path.join("Packages")).expect("Failed to create Aleph/Packages/");
+
+    // the current directory here is the Aleph/Current that will be holding all the symlinks to
+    // active packages' executables thus we only need to link this to Path
+    // extracting this into a variable so that it can be used later to include Aleph/Current into
+    // powershell path
+    let current_dir = root_path.join("Current");
+    create_dir(current_dir).expect("Failed to create Aleph/Current/");
+    // TODO: add current_dir to path (copy the append to path function pretty much);
+
+    // symlink $HOME/Aleph to $HOME/Documents/.Aleph so that linux users can easily access
+    // aleph root directory (as wine symlinks ~/Documents to $HOME/Documents where $HOME is the
+    // wine prefix drive C's user home directory)
+    let symlink_path = symlink_path.join("Amigo");
+    dbg!(&symlink_path);
+
+    // This doesn't seem to work .w.
+    // CAN'T PROCEED WITHOUT FIGURING OUT HOW TO CREATE SYMLINK!
+    // maybe this could work
+    // https://stackoverflow.com/questions/64991523/why-are-administrator-privileges-required-to-create-a-symlink-on-windows
+    symlink_dir(root_path, symlink_path).expect("Failed to create symlink");
+    println!("Populated aleph root");
 }
 
 fn get_executables(search_dir: &str, bin_attr: Binary) -> Result<Vec<String>, String> {
