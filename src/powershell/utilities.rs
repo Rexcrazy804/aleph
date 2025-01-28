@@ -1,7 +1,9 @@
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 // actually the only possible way for this to fail is for powershell to not be installed
 // in the operating system
+// COULD USE CMD FOR THIS WITH: echo %APPDATA% and using appdata/roaming/aleph as root directory
 pub fn get_home_directory() -> String {
     let output = Command::new("pwsh")
         .args(["-c", "echo", "$home"])
@@ -14,32 +16,36 @@ pub fn get_home_directory() -> String {
 
 /// attempts to download the given url to the provided directory and returns the path to the
 /// downloaded file. TODO correct the return type to be a a std::path::PATH
-pub fn download_url(url: &str, download_location: &str) -> Result<String, String> {
-    let filename = get_filename(url).unwrap_or("file.zip".to_string());
-
-    println!("Downloading file {filename}");
-
-    // empty to select current directory
-    let file_path = download_location.to_string() + &filename;
+pub fn download_url(url: &str, download_location: &Path) -> Result<PathBuf, String> {
+    println!("Downloading file {url}");
 
     let Ok(output) = Command::new("pwsh")
-        .args(["-c", "Invoke-WebRequest", url, "-OutFile ", &file_path])
+        .args(["-c", "wget", url, "-P", download_location.to_str().unwrap()])
         .output()
     else {
-        return Err("Failed to execute request".to_string());
+        return Err("Failed to execute request".to_owned());
     };
 
-    match String::from_utf8(output.stderr) {
-        Ok(stderr) => {
-            if stderr.is_empty() {
-                println!("Download Sucessfull");
-                Ok(file_path)
-            } else {
-                Err(stderr)
-            }
-        }
-        Err(_) => Err("Failed to parse stderr".to_string()),
+    if let Ok(stdout) = String::from_utf8(output.stdout) {
+        println!("{stdout}");
+        println!("NO STDOUT");
+    } else {
+        println!("NO STDOUT");
     }
+
+    //match String::from_utf8(output.stderr) {
+    //    Ok(stderr) => {
+    //        if stderr.is_empty() {
+    //            println!("Download Sucessfull");
+    //            Ok(file_path)
+    //        } else {
+    //            Err(stderr)
+    //        }
+    //    }
+    //    Err(_) => Err("Failed to parse stderr".to_string()),
+    //}
+
+    Err("ehe".to_owned())
 }
 
 fn get_filename(url: &str) -> Option<String> {

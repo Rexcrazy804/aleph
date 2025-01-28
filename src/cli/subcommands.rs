@@ -54,6 +54,8 @@ fn colorize_print_description(color: &str, command: &str, description: &str, tab
 }
 
 fn fetch_repo(url: Option<&String>) -> Result<(), String> {
+    println!("FUNCTION BORKED AWAITING fixed IMPLEMENTATION");
+    unimplemented!();
     use crate::powershell::utilities::{download_url, get_home_directory};
     use crate::zipper::unzip_alt;
 
@@ -74,13 +76,13 @@ fn fetch_repo(url: Option<&String>) -> Result<(), String> {
             .expect("Failed to identify bucket name")
     );
 
-    let Ok(file_path) = download_url(url, &download_dir) else {
-        return Err("Failed to download File".to_string());
-    };
+    //let Ok(file_path) = download_url(url, &download_dir) else {
+    //    return Err("Failed to download File".to_string());
+    //};
 
     // we aren't using the path for the time being but we will need to log it down somwhere
     // once support for mutliple repos are established
-    let _ = unzip_alt(&file_path, &extract_dir, None);
+    //let _ = unzip_alt(&file_path, &extract_dir, None);
     Ok(())
 }
 
@@ -105,7 +107,7 @@ fn install_repo_manifest(pname: Option<&String>) -> Result<(), String> {
         let manifest =
             read_to_string(manifest_path).expect("Failed to find manifest. Invalid package name?");
         let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
-        manifest_installer(&manifest)?
+        manifest_installer(&manifest, pname)?;
     }
 
     Ok(())

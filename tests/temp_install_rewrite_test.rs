@@ -8,10 +8,5 @@ fn installer_runner() {
 
     let manifest = read_to_string(COWSAY_MANIFEST).expect("Failed to read file");
     let manifest: Manifest = Manifest::parse(&manifest).expect("Failed to parse data");
-
-    if let Err(error) = manifest_installer(&manifest) {
-        eprintln!("{error}")
-    }
-
-    assert_eq!(Ok(()), manifest_installer(&manifest));
+    assert_eq!(Ok(()), manifest_installer(&manifest, "cowsay"));
 }

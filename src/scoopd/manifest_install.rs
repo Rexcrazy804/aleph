@@ -17,42 +17,34 @@ const DEBUG_PRINT: bool = false;
 
 // TODO Replace error return type to a concrete enum that can account for the different errors
 // no sanoy this is not for you
-pub fn manifest_installer(manifest: &Manifest) -> Result<(), String> {
+/// # Errors
+/// TODO: populate [document the possible erros sanoy you can do this part]
+/// # Panics
+/// TODO: populate [document the panic sanoy you can do this too]
+pub fn manifest_installer(manifest: &Manifest, pname: &str) -> Result<(), String> {
     let home_dir = PathBuf::from(get_home_directory());
     let root_dir = home_dir.join("Aleph");
     let download_dir = root_dir.join("Downloads");
-    let symlink_dir = home_dir.join("Documents");
 
     if let Ok(exists) = root_dir.try_exists() {
         if !exists {
-            initialize_root_dir(root_dir.clone(), symlink_dir);
+            initialize_root_dir(root_dir.clone());
         }
     } else {
         panic!("Failed to validate existence of path");
     }
-    // after this point we should either have a working home directory
-
-    //let download_dir = format!("{home_dir}\\Aleph\\Downloads\\");
-    // let the installer descide where to extract and return the
-    // extracted path
-    //let extract_dir = format!("");
 
     let url = manifest.get_url();
 
-    // TODO hash the downloads so that we can extract them
-    // into <hash>-filename/ directories like nixos
-    //let file_path = match url {
-    //    OneOrMany::One(url) => OneOrMany::One(download_url(&url, &download_dir)),
-    //    OneOrMany::Many(urls) => OneOrMany::Many(
-    //        urls.iter()
-    //            .map(|url| download_url(url, &download_dir))
-    //            .collect(),
-    //    ),
-    //};
-
-    //if DEBUG_PRINT {
-    //    println!("{file_path:?}");
-    //}
+    println!("Segs");
+    let file_path = match url {
+        OneOrMany::One(url) => OneOrMany::One(download_url(&url, &download_dir)),
+        OneOrMany::Many(urls) => OneOrMany::Many(
+            urls.iter()
+                .map(|url| download_url(url, &download_dir))
+                .collect(),
+        ),
+    };
 
     //let extracted_dir = match file_path {
     //    OneOrMany::One(file_path) => {
@@ -135,14 +127,12 @@ pub fn manifest_installer(manifest: &Manifest) -> Result<(), String> {
 
 /// this function creates the aleph root directory and popluates it with the required directory
 /// structure (TODO): additionally appends the Current/ folder of aleph to env:PATH
-fn initialize_root_dir(root_path: PathBuf, symlink_path: PathBuf) {
-    // unsure whether this function should have a return type
-    // since if anything fails here the programs stops execution
-    // so if this function executes successfully it can be assumed
-    // everything went well
-
+// unsure whether this function should have a return type
+// since if anything fails here the programs stops execution
+// so if this function executes successfully it can be assumed
+// everything went well
+fn initialize_root_dir(root_path: PathBuf) {
     use std::fs::create_dir;
-    use std::os::windows::fs::symlink_dir;
 
     println!("Aleph root not found");
     create_dir(root_path.clone()).expect("Failed to create Aleph Root directory");
@@ -152,25 +142,21 @@ fn initialize_root_dir(root_path: PathBuf, symlink_path: PathBuf) {
     create_dir(root_path.join("Downloads")).expect("Failed to create Aleph/Downloads/");
     create_dir(root_path.join("Packages")).expect("Failed to create Aleph/Packages/");
 
-    // the current directory here is the Aleph/Current that will be holding all the symlinks to
-    // active packages' executables thus we only need to link this to Path
-    // extracting this into a variable so that it can be used later to include Aleph/Current into
-    // powershell path
-    let current_dir = root_path.join("Current");
-    create_dir(current_dir).expect("Failed to create Aleph/Current/");
-    // TODO: add current_dir to path (copy the append to path function pretty much);
+    // // // // // // // RIP TO MAKING SIMLINKS :D THEY DO NOT WORK UNDER WINE // // // // // // //
+    //// the current directory here is the Aleph/Current that will be holding all the symlinks to
+    //// active packages' executables thus we only need to link this to Path
+    //// extracting this into a variable so that it can be used later to include Aleph/Current into
+    //// powershell path
+    //let current_dir = root_path.join("Current");
+    //create_dir(current_dir).expect("Failed to create Aleph/Current/");
+    //// TODO: add current_dir to path (copy the append to path function pretty much);
+    //
+    //// symlink $HOME/Aleph to $HOME/Documents/.Aleph so that linux users can easily access
+    //// aleph root directory (as wine symlinks ~/Documents to $HOME/Documents where $HOME is the
+    //// wine prefix drive C's user home directory)
+    //let symlink_path = symlink_path.join(".Aleph");
+    //dbg!(&symlink_path); // // // // // // // // // // // // // // // // // // // // // // // //
 
-    // symlink $HOME/Aleph to $HOME/Documents/.Aleph so that linux users can easily access
-    // aleph root directory (as wine symlinks ~/Documents to $HOME/Documents where $HOME is the
-    // wine prefix drive C's user home directory)
-    let symlink_path = symlink_path.join("Amigo");
-    dbg!(&symlink_path);
-
-    // This doesn't seem to work .w.
-    // CAN'T PROCEED WITHOUT FIGURING OUT HOW TO CREATE SYMLINK!
-    // maybe this could work
-    // https://stackoverflow.com/questions/64991523/why-are-administrator-privileges-required-to-create-a-symlink-on-windows
-    symlink_dir(root_path, symlink_path).expect("Failed to create symlink");
     println!("Populated aleph root");
 }
 

@@ -73,9 +73,15 @@ impl Manifest {
         serde_json::from_str(str)
     }
 
+    /// this function is a simple interface to extract the url from the manifest
+    /// all functional manifests WILL HAVE atleast one valid url in
+    /// ```Manifest.arch or Manifest.architecture.*.url```
+    /// # Panics
+    /// this function can panic if no url: or Architecture.<arch>.url is found
+    #[must_use]
     pub fn get_url(&self) -> OneOrMany<String> {
-        let None = &self.url else {
-            return self.url.clone().unwrap();
+        if let Some(url) = &self.url {
+            return url.clone();
         };
 
         let Some(arch) = &self.architecture else {
