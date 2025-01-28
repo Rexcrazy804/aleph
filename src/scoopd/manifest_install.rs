@@ -10,14 +10,14 @@ use crate::{
 // DEBUG SYSMBOLS
 // all must be set to FALSE after debugging
 const DEBUG_NOINSTALL: bool = false;
-const DEBUG_PRINT: bool = true;
+const DEBUG_PRINT: bool = false;
 
 // TODO Replace error return type to a concrete enum that can account for the different errors
 // no sanoy this is not for you
 pub fn manifest_installer(manifest: &Manifest) -> Result<(), String> {
     let home_dir = get_home_directory();
-    let download_dir = dbg!(format!("{home_dir}\\Downloads\\"));
-    let extract_dir = dbg!(format!("{home_dir}\\Documents\\aleph\\"));
+    let download_dir = format!("{home_dir}\\Downloads\\");
+    let extract_dir = format!("{home_dir}\\Documents\\aleph\\");
 
     let url = manifest.get_url();
 
@@ -32,7 +32,9 @@ pub fn manifest_installer(manifest: &Manifest) -> Result<(), String> {
         ),
     };
 
-    println!("{file_path:?}");
+    if DEBUG_PRINT {
+        println!("{file_path:?}");
+    }
 
     let extracted_dir = match file_path {
         OneOrMany::One(file_path) => {

@@ -66,13 +66,13 @@ fn fetch_repo(url: Option<&String>) -> Result<(), String> {
     // prolly have to condense this into a config that is readable
     // maybe
     let home_dir = get_home_directory();
-    let download_dir = dbg!(format!("{home_dir}\\Downloads\\"));
-    let extract_dir = dbg!(format!(
+    let download_dir = format!("{home_dir}\\Downloads\\");
+    let extract_dir = format!(
         "{home_dir}\\Documents\\aleph\\__REPO-{}",
         url.split('/')
             .last()
             .expect("Failed to identify bucket name")
-    ));
+    );
 
     let Ok(file_path) = download_url(url, &download_dir) else {
         return Err("Failed to download File".to_string());
@@ -96,13 +96,11 @@ fn install_repo_manifest(pname: Option<&String>) -> Result<(), String> {
 
     let home_dir = get_home_directory();
     // will need to modify this when multi bucket support is added
-    let repo_dir = dbg!(format!(
-        "{home_dir}\\Documents\\aleph\\__REPO-masterfile\\bucket"
-    ));
+    let repo_dir = format!("{home_dir}\\Documents\\aleph\\__REPO-masterfile\\bucket");
 
     for package in pname.split_whitespace() {
         // lets us do stuff like aleph install p1 p2 p3 p4
-        let manifest_path = dbg!(format!("{repo_dir}\\{package}.json"));
+        let manifest_path = format!("{repo_dir}\\{package}.json");
 
         let manifest =
             read_to_string(manifest_path).expect("Failed to find manifest. Invalid package name?");
@@ -119,9 +117,7 @@ fn search_repo(keywords: Option<&String>) -> Result<(), String> {
 
     let home_dir = get_home_directory();
     // will need to modify this when multi bucket support is added
-    let repo_dir = dbg!(format!(
-        "{home_dir}\\Documents\\aleph\\__REPO-masterfile\\bucket"
-    ));
+    let repo_dir = format!("{home_dir}\\Documents\\aleph\\__REPO-masterfile\\bucket");
 
     let Some(keywords) = keywords else {
         return Err("Expected keyword argument for search subcommand".to_string());

@@ -39,7 +39,6 @@ impl Action {
             Some(support_arguments)
         };
 
-        dbg!(&support_arguments);
         match primary_argument.as_str() {
             "--help" => Ok(Action::new(SubCommand::Help, None)),
             "install" => Ok(Action::new(SubCommand::Install, support_arguments)),

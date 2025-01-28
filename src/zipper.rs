@@ -74,14 +74,11 @@ pub fn unzip_alt(
     extract_directory: &str,
     #[allow(unused_variables)] dir_to_extract: Option<&String>,
 ) -> String {
-    dbg!(file_path);
-    dbg!(extract_directory);
-
     // I am certain we can skip the make dirname step by reading and tracking the name of the .json
     // file and then modify the function to extract directly to extract_directory instead of making
     // a folder on top of etract dir
     // TODO: add optional argument to explicitly provide filename
-    let (file_dir, file_type) = dbg!(make_dirname_and_get_file_type(file_path));
+    let (file_dir, file_type) = make_dirname_and_get_file_type(file_path);
     let target_dir = format!("{extract_directory}{file_dir}");
 
     match file_type.as_str() {
