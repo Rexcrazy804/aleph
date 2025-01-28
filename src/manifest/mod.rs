@@ -69,6 +69,10 @@ pub struct ModuleName {
 }
 
 impl Manifest {
+    pub fn parse(str: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(str)
+    }
+
     pub fn get_url(&self) -> OneOrMany<String> {
         let None = &self.url else {
             return self.url.clone().unwrap();
