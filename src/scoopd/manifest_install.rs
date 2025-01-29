@@ -16,7 +16,7 @@ use crate::{
 /// # Panics
 /// TODO: populate [document the panic sanoy you can do this too]
 pub fn manifest_installer(manifest: &Manifest, package_name: &str) -> Result<(), String> {
-    let home_dir = PathBuf::from(get_home_directory());
+    let home_dir = get_home_directory();
     let root_dir = home_dir.join("Aleph");
     let download_dir = root_dir.join("Downloads");
     let extract_dir = root_dir.join("Packages");
@@ -99,8 +99,6 @@ fn initialize_root_dir(root_path: &PathBuf) {
     //// wine prefix drive C's user home directory)
     //let symlink_path = symlink_path.join(".Aleph");
     //dbg!(&symlink_path); // // // // // // // // // // // // // // // // // // // // // // // //
-
-    println!("Populated aleph root");
 }
 
 // UHH work on this crap later

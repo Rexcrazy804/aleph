@@ -1,18 +1,22 @@
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 
+use crate::powershell::installer::append_to_path;
+
+const WGET_ERR: &str = "The term 'wget' is not recognized";
 // actually the only possible way for this to fail is for powershell to not be installed
 // in the operating system
 // COULD USE CMD FOR THIS WITH: echo %APPDATA% and using appdata/roaming/aleph as root directory
-pub fn get_home_directory() -> String {
+pub fn get_home_directory() -> PathBuf {
     let output = Command::new("pwsh")
         .args(["-c", "echo", "$home"])
         .output()
         .expect("Failed to execute process [is powershell installed?]");
 
     let home_directory = String::from_utf8(output.stdout).unwrap().trim().to_string();
-    home_directory
+    PathBuf::from(home_directory)
 }
 
 /// attempts to download the given url to the provided directory and returns the path to the
@@ -49,7 +53,14 @@ pub fn download_url(url: &str, download_location: &Path) -> Result<PathBuf, Stri
 
     // dk why but wget writes to stderr by default .w.
     if let Ok(stderr) = String::from_utf8(output.stderr) {
+        // EXECUTE THIS PORTION IF WGET IS NOT FOUND;
+        if stderr.contains(WGET_ERR) {
+            let extract_dir = get_wget();
+            append_to_path(&get_home_directory(), &vec![extract_dir]);
+            return download_url(url, download_location);
+        }
         let Some((_url, path)) = stderr.split_once("->") else {
+            println!("{stderr}");
             return Err("Failed to parse wget output".to_string());
         };
         let Some((path, _)) = path.trim().split_once(' ') else {
@@ -64,4 +75,44 @@ pub fn download_url(url: &str, download_location: &Path) -> Result<PathBuf, Stri
     }
 
     Err("Wget generated no output / Powershell is not installed".to_owned())
+}
+
+/// gets the wget executable if wget is missing
+/// # Panics
+/// - conversion of path to string
+#[must_use]
+pub fn get_wget() -> PathBuf {
+    const VERSION: &str = "1.21.4";
+    let arch = match std::env::consts::ARCH {
+        "x86" => "32",
+        "x86_64" => "64",
+        _ => panic!("Unsupported architecture"),
+    };
+
+    let url = format!("https://eternallybored.org/misc/wget/{VERSION}/{arch}/wget.exe");
+    let filename = "wget.exe";
+    println!("Downloading file {filename}...");
+
+    let home_dir = get_home_directory();
+    let root_dir = home_dir.join("Aleph");
+    let extract_dir = root_dir.join("Packages\\wget").join(VERSION);
+    fs::create_dir_all(&extract_dir).expect("Failed to create extract dir");
+
+    // empty to select current directory
+    let file_path = extract_dir.join(filename);
+
+    let Ok(_output) = Command::new("pwsh")
+        .args([
+            "-c",
+            "Invoke-WebRequest",
+            &url,
+            "-OutFile ",
+            file_path.to_str().unwrap(),
+        ])
+        .output()
+    else {
+        panic!("Failed to execute request");
+    };
+
+    extract_dir
 }
