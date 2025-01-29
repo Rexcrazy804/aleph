@@ -4,9 +4,17 @@ fn installer_runner() {
     use aleph::scoopd::manifest_install::manifest_installer;
     use std::fs::read_to_string;
 
-    const COWSAY_MANIFEST: &'static str = "./tests/sample_data/cowsay.json";
+    const MANIFEST: &'static str = "./tests/sample_data/7zip.json";
 
-    let manifest = read_to_string(COWSAY_MANIFEST).expect("Failed to read file");
+    let manifest = read_to_string(MANIFEST).expect("Failed to read file");
     let manifest: Manifest = Manifest::parse(&manifest).expect("Failed to parse data");
-    assert_eq!(Ok(()), manifest_installer(&manifest, "cowsay"));
+    let pname = MANIFEST
+        .split('/')
+        .last()
+        .unwrap()
+        .split_once('.')
+        .unwrap()
+        .0;
+    dbg!(pname);
+    assert_eq!(Ok(()), manifest_installer(&manifest, pname));
 }

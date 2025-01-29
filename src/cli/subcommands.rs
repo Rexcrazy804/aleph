@@ -54,10 +54,9 @@ fn colorize_print_description(color: &str, command: &str, description: &str, tab
 }
 
 fn fetch_repo(url: Option<&String>) -> Result<(), String> {
-    println!("FUNCTION BORKED AWAITING fixed IMPLEMENTATION");
-    unimplemented!();
+    unimplemented!("FUNCTION BORKED AWAITING fixed IMPLEMENTATION");
     use crate::powershell::utilities::{download_url, get_home_directory};
-    use crate::zipper::unzip_alt;
+    use crate::zipper::extract_archive;
 
     let url = if url.is_some() {
         url.unwrap()

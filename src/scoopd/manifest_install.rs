@@ -7,7 +7,7 @@ use crate::{
         installer::append_to_path,
         utilities::{download_url, get_home_directory},
     },
-    zipper::unzip_alt,
+    zipper::extract_archive,
 };
 
 // DEBUG SYSMBOLS
@@ -43,18 +43,17 @@ pub fn manifest_installer(manifest: &Manifest, package_name: &str) -> Result<(),
         })
         .collect::<Vec<PathBuf>>();
 
-    let package_version = &manifest.version;
     // NOTE: if two buckets have packages with the same package name WE MUST force the user to
     // declare which bucket the package is to be downloaded from. The user may declare the package
     // to be installed from both buckets in which case we will need to set package name as
     // package_name = <bucket-name>-<Package-name>
-    // TODO: implement above funtionality
-
-    // thus files will be installed to ROOT_DIR/Packages/<Package-name>/<Package_version>/
+    // TODO: implement above funtionality.
+    // Files will be installed to ROOT_DIR/Packages/<Package-name>/<Package_version>/
+    let package_version = &manifest.version;
     let extract_dir = extract_dir.join(package_name).join(package_version);
 
     for archive in downloaded_archives {
-        unzip_alt(&archive, &extract_dir, manifest.extract_dir.clone());
+        extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
     }
 
     //if DEBUG_PRINT {
