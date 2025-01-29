@@ -4,7 +4,7 @@ fn installer_runner() {
     use aleph::scoopd::manifest_install::manifest_installer;
     use std::fs::read_to_string;
 
-    const MANIFEST: &'static str = "./tests/sample_data/7zip.json";
+    const MANIFEST: &'static str = "./tests/sample_data/cowsay.json";
 
     let manifest = read_to_string(MANIFEST).expect("Failed to read file");
     let manifest: Manifest = Manifest::parse(&manifest).expect("Failed to parse data");

@@ -39,7 +39,10 @@ pub fn extract_archive(
             extract_msi(archive, extract_directory);
         }
         "zip" => extract_zip(archive, extract_directory),
-        _ => panic!("Unsupported File Format!"),
+        _ => {
+            remove_file(archive).expect("Failed to remove downloaded archive");
+            panic!("Unsupported File Format!");
+        }
     };
     println!("Extracted archive successfully");
 
