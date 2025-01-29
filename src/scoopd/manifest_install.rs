@@ -37,57 +37,25 @@ pub fn manifest_installer(manifest: &Manifest, package_name: &str) -> Result<(),
 
     let downloaded_archives = manifest
         .get_url()
-        .map(|url| download_url(&url, &download_dir).expect("Failed to download {url}"))
+        .map(|url| match download_url(&url, &download_dir) {
+            Ok(dir) => dir,
+            Err(e) => panic!("{e}"),
+        })
         .collect::<Vec<PathBuf>>();
 
-    //let package_version = &manifest.version;
-    //// thus files will be installed to ROOT_DIR/Packages/<Package_name>/<Package_version>/
-    //let extract_dir = extract_dir.join(package_name).join(package_version);
+    let package_version = &manifest.version;
+    // NOTE: if two buckets have packages with the same package name WE MUST force the user to
+    // declare which bucket the package is to be downloaded from. The user may declare the package
+    // to be installed from both buckets in which case we will need to set package name as
+    // package_name = <bucket-name>-<Package-name>
+    // TODO: implement above funtionality
 
-    //match downloaded_archive {
-    //    OneOrMany::One(file_path) => {
-    //        let mut manifest_extract_dir = None;
-    //        if let Some(OneOrMany::One(dir)) = &manifest.extract_dir {
-    //            manifest_extract_dir = Some(dir);
-    //        };
-    //
-    //        let Ok(file_path) = file_path else {
-    //            panic!("FAILIURE");
-    //        };
-    //
-    //        let result = unzip_alt(&file_path, &extract_dir, manifest_extract_dir);
-    //        OneOrMany::One(result)
-    //    }
-    //
-    //    OneOrMany::Many(file_paths) => {
-    //        let result;
-    //        if let Some(OneOrMany::Many(dirs)) = &manifest.extract_dir {
-    //            result = file_paths
-    //                .iter()
-    //                .zip(dirs)
-    //                .map(|(file_path, m_extract_dir)| {
-    //                    let Ok(file_path) = file_path else {
-    //                        panic!("FAILIURE");
-    //                    };
-    //
-    //                    unzip_alt(file_path, &extract_dir, Some(m_extract_dir))
-    //                })
-    //                .collect();
-    //        } else {
-    //            result = file_paths
-    //                .iter()
-    //                .map(|file_path| {
-    //                    let Ok(file_path) = file_path else {
-    //                        panic!("FAILIURE");
-    //                    };
-    //
-    //                    unzip_alt(file_path, &extract_dir, None)
-    //                })
-    //                .collect()
-    //        };
-    //        OneOrMany::Many(result)
-    //    }
-    //};
+    // thus files will be installed to ROOT_DIR/Packages/<Package-name>/<Package_version>/
+    let extract_dir = extract_dir.join(package_name).join(package_version);
+
+    for archive in downloaded_archives {
+        unzip_alt(&archive, &extract_dir, manifest.extract_dir.clone());
+    }
 
     //if DEBUG_PRINT {
     //    println!("EXTRACTED DIRECTORY: {extracted_dir:?}");

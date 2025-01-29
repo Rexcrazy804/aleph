@@ -1,97 +1,36 @@
 // might have to reloate this later
+use crate::manifest::OneOrMany;
+use crate::powershell;
 use sevenz_rust;
-use std::fs::{self, File};
+use std::fs::{self};
 use std::io::{self, Cursor};
 use std::path::{Path, PathBuf};
-
-use crate::powershell;
-
-pub fn unzip(archive: &str, extract_location: &str) -> Result<String, String> {
-    let Ok(file) = File::open(archive) else {
-        return Err("invalid File path".to_string());
-    };
-
-    // in case a root folder does not exist in the archive;
-    let alt_root_dir = archive
-        // this arhive var hold the absolute path
-        .split(['/', '\\'])
-        .last()
-        .unwrap()
-        // the archive name will have a .<file extension>, this removes that
-        .split('.')
-        .next()
-        .unwrap()
-        .to_owned()
-        + "/";
-    println!("Extracting {archive}");
-    let Ok(mut archive) = zip::ZipArchive::new(file) else {
-        return Err("Failed to open archive".to_string());
-    };
-
-    // TODO cleanup the unwraps here later
-    let mut extracted_directory = String::new();
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i).unwrap();
-        let outpath = match file.enclosed_name() {
-            Some(path) => {
-                if file.is_dir() {
-                    extracted_directory = extract_location.to_string() + path.to_str().unwrap();
-                } else {
-                    extracted_directory =
-                        extract_location.to_string() + &alt_root_dir + path.to_str().unwrap();
-                }
-                PathBuf::from(&extracted_directory)
-            }
-            None => continue,
-        };
-
-        if file.is_dir() {
-            fs::create_dir_all(&outpath).unwrap();
-        } else {
-            if let Some(p) = outpath.parent() {
-                if !p.exists() {
-                    fs::create_dir_all(p).unwrap();
-                }
-            }
-            let mut outfile = fs::File::create(&outpath).unwrap();
-            io::copy(&mut file, &mut outfile).unwrap();
-        }
-    }
-
-    let extracted_root_dir = extracted_directory
-        .split(['/', '\\'])
-        .rev()
-        .take_while(|x| !x.contains("aleph"))
-        .last()
-        .unwrap();
-    Ok(extracted_root_dir.to_owned())
-}
 
 /// unzips file_path to extract_directory/[dirname] and returns the path to extracted directory
 /// dir_to_extract variable does nothing right now
 pub fn unzip_alt(
-    file_path: &str,
-    extract_directory: &str,
-    #[allow(unused_variables)] dir_to_extract: Option<&String>,
-) -> String {
+    archive: &Path,
+    extract_directory: &Path,
+    #[allow(unused_variables)] dir_to_extract: Option<OneOrMany<String>>,
+) -> std::io::Result<()> {
+    unimplemented!("Fix the corresponding functions .w.");
     // I am certain we can skip the make dirname step by reading and tracking the name of the .json
     // file and then modify the function to extract directly to extract_directory instead of making
     // a folder on top of etract dir
     // TODO: add optional argument to explicitly provide filename
-    let (file_dir, file_type) = make_dirname_and_get_file_type(file_path);
-    let target_dir = format!("{extract_directory}{file_dir}");
+    let (file_dir, file_type) = make_dirname_and_get_file_type(archive);
 
     match file_type.as_str() {
-        "7z" => extract_7z(file_path, &target_dir),
+        "7z" => extract_7z(archive, extract_directory),
         "msi" => {
-            powershell::utilities::extract_msi(file_path, &target_dir);
-            let _ = strip_directory(&target_dir);
+            powershell::utilities::extract_msi(archive, extract_directory);
+            let _ = strip_directory(extract_directory);
         }
-        "zip" => extract_zip(file_path, &target_dir),
+        "zip" => extract_zip(archive, extract_directory),
         _ => panic!("Unsupported File Format!"),
     };
 
-    target_dir
+    Ok(())
 }
 
 fn extract_zip(file_path: &str, target_dir: &String) {
