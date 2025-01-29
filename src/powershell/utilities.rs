@@ -35,7 +35,9 @@ pub fn download_url(url: &str, download_location: &Path) -> Result<PathBuf, Stri
             "-nv",
             url,
             "-P",
-            download_location.to_str().unwrap(),
+            download_location
+                .to_str()
+                .expect("Failed to convert location to String"),
         ])
         .output()
     else {

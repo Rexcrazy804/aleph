@@ -21,10 +21,11 @@ const DEBUG_PRINT: bool = false;
 /// TODO: populate [document the possible erros sanoy you can do this part]
 /// # Panics
 /// TODO: populate [document the panic sanoy you can do this too]
-pub fn manifest_installer(manifest: &Manifest, pname: &str) -> Result<(), String> {
+pub fn manifest_installer(manifest: &Manifest, package_name: &str) -> Result<(), String> {
     let home_dir = PathBuf::from(get_home_directory());
     let root_dir = home_dir.join("Aleph");
     let download_dir = root_dir.join("Downloads");
+    let extract_dir = root_dir.join("Packages");
 
     if let Ok(exists) = root_dir.try_exists() {
         if !exists {
@@ -34,19 +35,16 @@ pub fn manifest_installer(manifest: &Manifest, pname: &str) -> Result<(), String
         panic!("Failed to validate existence of path");
     }
 
-    let url = manifest.get_url();
+    let downloaded_archives = manifest
+        .get_url()
+        .map(|url| download_url(&url, &download_dir).expect("Failed to download {url}"))
+        .collect::<Vec<PathBuf>>();
 
-    println!("Segs");
-    let file_path = match url {
-        OneOrMany::One(url) => OneOrMany::One(download_url(&url, &download_dir)),
-        OneOrMany::Many(urls) => OneOrMany::Many(
-            urls.iter()
-                .map(|url| download_url(url, &download_dir))
-                .collect(),
-        ),
-    };
+    //let package_version = &manifest.version;
+    //// thus files will be installed to ROOT_DIR/Packages/<Package_name>/<Package_version>/
+    //let extract_dir = extract_dir.join(package_name).join(package_version);
 
-    //let extracted_dir = match file_path {
+    //match downloaded_archive {
     //    OneOrMany::One(file_path) => {
     //        let mut manifest_extract_dir = None;
     //        if let Some(OneOrMany::One(dir)) = &manifest.extract_dir {

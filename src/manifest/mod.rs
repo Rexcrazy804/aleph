@@ -21,6 +21,22 @@ pub enum OneOrMany<T> {
     Many(Vec<T>),
 }
 
+impl<T: Clone> Iterator for OneOrMany<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let OneOrMany::One(lonely_data) = self {
+            *self = OneOrMany::Many(vec![lonely_data.clone()]);
+        }
+
+        let OneOrMany::Many(vector) = self else {
+            unreachable!();
+        };
+
+        vector.pop()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
     // REQUIRED properties
