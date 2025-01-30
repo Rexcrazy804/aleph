@@ -38,8 +38,7 @@ pub fn extract_archive(
         }
         "zip" => extract_zip(archive, extract_directory),
         _ => {
-            remove_file(archive).expect("Failed to remove downloaded archive");
-            panic!("Unsupported File Format!");
+            panic!("Unsupported archive type: {file_type}");
         }
     };
     println!("Extracted archive successfully");
