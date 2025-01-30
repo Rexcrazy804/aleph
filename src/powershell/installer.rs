@@ -16,7 +16,7 @@ $env:PATH)
 /// # Errors
 /// - IO erros like being unable to write to profile file
 pub fn append_to_path(home_dir: &Path, paths: &Vec<PathBuf>) -> std::io::Result<()> {
-    let powershell_dir = home_dir.join("Documents\\PowerShell\\");
+    let powershell_dir = home_dir.join("Documents\\PowerShell");
     if let Ok(false) = powershell_dir.try_exists() {
         create_dir(powershell_dir.clone()).expect("Failed to create powershell folder");
     }

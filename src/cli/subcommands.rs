@@ -1,8 +1,6 @@
-use std::any::Any;
-
 use crate::manifest::Manifest;
 use crate::AlephConfig;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub(super) enum SubCommand {
     // help is a special subcommand for the --help flag
@@ -104,28 +102,42 @@ fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), Str
     Ok(())
 }
 
-fn install_repo_manifest(config: &AlephConfig, pname: Option<&String>) -> Result<(), String> {
+fn install_repo_manifest(config: &AlephConfig, arg: Option<&String>) -> Result<(), String> {
     use crate::manifest::Manifest;
-    use crate::powershell::utilities::get_home_directory;
     use crate::scoopd::manifest_install::manifest_installer;
     use std::fs::read_to_string;
 
-    let Some(pname) = pname else {
+    let Some(arg) = arg else {
         return Err("package name REQUIRED".to_string());
     };
 
-    let home_dir = get_home_directory();
-    // will need to modify this when multi bucket support is added
-    let repo_dir = home_dir.join("Documents\\aleph\\__REPO-masterfile\\bucket");
+    let packages = arg.split_whitespace();
+    for package in packages {
+        let package = package.trim();
+        let mut manifest_path: Option<PathBuf> = None;
 
-    for package in pname.split_whitespace() {
-        // lets us do stuff like aleph install p1 p2 p3 p4
-        let manifest_path = repo_dir.join(format!("{package}.json"));
+        for bucket in config.paths.buckets.read_dir().expect("") {
+            let Ok(bucket) = bucket else {
+                println!("Failed to read bucket entry");
+                continue;
+            };
+            let manifest_bucket_path = bucket.path().join("bucket").join(format!("{package}.json"));
+            if let Ok(true) = manifest_bucket_path.try_exists() {
+                println!("found package manifest at {manifest_bucket_path:?}");
+                manifest_path = Some(manifest_bucket_path);
+                break;
+            }
+        }
 
-        let manifest =
+        let Some(manifest_path) = manifest_path else {
+            println!("Pakcage {package} not found");
+            continue;
+        };
+
+        let manifest_data =
             read_to_string(manifest_path).expect("Failed to find manifest. Invalid package name?");
-        let manifest: Manifest = serde_json::from_str(&manifest).expect("Failed to parse data");
-        manifest_installer(config, &manifest, pname)?;
+        let manifest = Manifest::parse(&manifest_data).expect("Failed to parse data");
+        manifest_installer(config, &manifest, package)?;
     }
 
     Ok(())

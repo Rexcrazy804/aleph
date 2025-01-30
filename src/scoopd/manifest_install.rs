@@ -18,16 +18,6 @@ pub fn manifest_installer(
     manifest: &Manifest,
     package_name: &str,
 ) -> Result<(), String> {
-    let downloaded_archives = manifest
-        .get_url()
-        .map(
-            |url| match download_url(&url, &config.paths.download, &config.paths.packages) {
-                Ok(dir) => dir,
-                Err(e) => panic!("{e}"),
-            },
-        )
-        .collect::<Vec<PathBuf>>();
-
     // NOTE: if two buckets have packages with the same package name WE MUST force the user to
     // declare which bucket the package is to be downloaded from. The user may declare the package
     // to be installed from both buckets in which case we will need to set package name as
@@ -40,6 +30,22 @@ pub fn manifest_installer(
         .packages
         .join(package_name)
         .join(package_version);
+
+    // check if program exists in path as well before exiting
+    //if let Ok(true) = extract_dir.try_exists() {
+    //    println!("Program {package_name} version {package_version} has already been installed");
+    //    return Ok(())
+    //}
+
+    let downloaded_archives = manifest
+        .get_url()
+        .map(
+            |url| match download_url(&url, &config.paths.download, &config.paths.packages) {
+                Ok(dir) => dir,
+                Err(e) => panic!("{e}"),
+            },
+        )
+        .collect::<Vec<PathBuf>>();
 
     for archive in downloaded_archives {
         extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
