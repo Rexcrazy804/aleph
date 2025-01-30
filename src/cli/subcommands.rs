@@ -71,7 +71,7 @@ fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), Str
         println!("WARN NO ARGUMENT PROVIDED, assuming default bucket main");
         (
             "main",
-            "https://codeload.github.com/ScoopInstaller/Main/zip/refs/heads/master",
+            "https://github.com/ScoopInstaller/Main/archive/refs/heads/master.zip",
         )
     };
 
@@ -87,11 +87,16 @@ fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), Str
         return Err("Failed to download File".to_string());
     };
 
-    let mut new_archive = archive.clone();
-    new_archive.set_file_name("bucket.zip");
-
-    std::fs::rename(archive, &new_archive).expect("Failed to rename archive");
-    extract_archive(&new_archive, &bucket_dir, None);
+    if archive.extension().is_some() {
+        extract_archive(&archive, &bucket_dir, None);
+    } else {
+        // in the event that the provided bucket does not have a file extension, we will assume
+        // that it is a zip file.
+        let mut new_archive = archive.clone();
+        new_archive.set_file_name("bucket.zip");
+        std::fs::rename(archive, &new_archive).expect("Failed to rename archive");
+        extract_archive(&new_archive, &bucket_dir, None);
+    }
 
     Ok(())
 }
