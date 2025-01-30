@@ -1,6 +1,8 @@
 use std::any::Any;
 
+use crate::manifest::Manifest;
 use crate::AlephConfig;
+use std::path::Path;
 
 pub(super) enum SubCommand {
     // help is a special subcommand for the --help flag
@@ -63,6 +65,7 @@ fn colorize_print_description(color: &str, command: &str, description: &str, tab
 fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), String> {
     use crate::powershell::utilities::download_url;
     use crate::zipper::extract_archive;
+    use std::fs::{create_dir, rename};
 
     let (bucket_name, url) = if let Some(arg) = argument {
         let arg = arg.trim();
@@ -81,7 +84,7 @@ fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), Str
         return Ok(());
     }
 
-    std::fs::create_dir(&bucket_dir).expect("Failed to create directory for bucket {bucket_name}");
+    create_dir(&bucket_dir).expect("Failed to create directory for bucket {bucket_name}");
 
     let Ok(archive) = download_url(url, &config.paths.download, &config.paths.packages) else {
         return Err("Failed to download File".to_string());
@@ -94,7 +97,7 @@ fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), Str
         // that it is a zip file.
         let mut new_archive = archive.clone();
         new_archive.set_file_name("bucket.zip");
-        std::fs::rename(archive, &new_archive).expect("Failed to rename archive");
+        rename(archive, &new_archive).expect("Failed to rename archive");
         extract_archive(&new_archive, &bucket_dir, None);
     }
 
@@ -129,40 +132,57 @@ fn install_repo_manifest(config: &AlephConfig, pname: Option<&String>) -> Result
 }
 
 fn search_repo(config: &AlephConfig, keywords: Option<&String>) -> Result<(), String> {
-    use crate::manifest::Manifest;
-    use crate::powershell::utilities::get_home_directory;
-
-    let home_dir = get_home_directory();
     // will need to modify this when multi bucket support is added
-    let repo_dir = home_dir.join("Documents\\aleph\\__REPO-masterfile\\bucket");
+    let buckets_path = &config.paths.buckets;
 
     let Some(keywords) = keywords else {
         return Err("Expected keyword argument for search subcommand".to_string());
     };
 
-    for entry in std::fs::read_dir(repo_dir).expect("Failed to read Directory") {
-        let entry_path = entry.expect("failed to read entry").path();
-        if entry_path.is_file() {
-            let file_name_str = entry_path
-                .file_name()
-                .unwrap()
-                .to_str()
-                .expect("Failed to convert to string");
-            keywords.split_whitespace().for_each(|word| {
-                if file_name_str.contains(word) {
-                    let manifest_file = std::fs::read_to_string(entry_path.clone())
-                        .expect("Failed to read manifest file");
-                    let manifest: Manifest =
-                        serde_json::from_str(&manifest_file).expect("Failed to parse manifest");
-                    colorize_print_description(
-                        "92",
-                        file_name_str,
-                        &manifest.description,
-                        Some("\t"),
-                    );
-                }
-            });
+    let keywords = keywords.split_whitespace().collect::<Vec<&str>>();
+
+    for bucket in std::fs::read_dir(buckets_path).expect("Failed to read Directory") {
+        let bucket = bucket.expect("failed to read entry").path();
+        // we are assuming that every entry here is a directory, skip if it isn't
+        if bucket.is_file() {
+            continue;
+        }
+
+        let bucket = bucket.join("bucket");
+        search_bucket(&keywords, &bucket);
+    }
+
+    Ok(())
+}
+
+fn search_bucket(keywords: &Vec<&str>, bucket: &Path) {
+    for manifest_file in bucket.read_dir().expect("Failed to read dir") {
+        let Ok(manifest_file) = manifest_file else {
+            println!("Failed to read entry: {manifest_file:?}");
+            continue;
+        };
+
+        let manifest_file = manifest_file.path();
+        let manifest_name = manifest_file
+            .file_name()
+            .expect("No file name?")
+            .to_str()
+            .expect("Failed to convert file name to string");
+
+        for word in keywords {
+            if !manifest_name.contains(word) {
+                continue;
+            }
+
+            let Ok(manifest_data) = std::fs::read_to_string(&manifest_file) else {
+                println!("Failed to read {manifest_name:?}");
+                break;
+            };
+
+            let manifest = Manifest::parse(&manifest_data).expect("Failed to parse manifest");
+            colorize_print_description("92", manifest_name, &manifest.description, Some("\t"));
+
+            break;
         }
     }
-    Ok(())
 }
