@@ -1,6 +1,7 @@
 // might have to reloate this later
 use crate::manifest::OneOrMany;
 use sevenz_rust;
+use std::ffi::OsStr;
 use std::fs;
 use std::io::{self, Cursor};
 use std::path::{Path, PathBuf};
@@ -23,14 +24,9 @@ pub fn extract_archive(
     // TODO: add optional argument to explicitly provide filename
     use fs::{create_dir_all, remove_file};
     let file_type = archive
-        .iter()
-        .last()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .split('.')
-        .last()
-        .unwrap();
+        .extension()
+        .and_then(OsStr::to_str)
+        .expect("Failed to detect File Extension");
 
     create_dir_all(extract_directory).expect("Failed to create directory");
     println!("Created package directory");
