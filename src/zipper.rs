@@ -108,24 +108,23 @@ fn strip_directory(
 ) -> io::Result<()> {
     use fs::read_dir;
 
-    let target_dir = Path::new(extract_dir);
-    let entries_count = read_dir(target_dir)?.count();
-    if entries_count != 1 {
+    if read_dir(extract_dir)?.count() > 1 {
         return Ok(());
     }
 
-    let lonely_entry = read_dir(target_dir)?.last().unwrap()?;
+    let lonely_entry = read_dir(extract_dir)?.last().unwrap()?;
 
-    if lonely_entry.path().is_dir() {
-        for subdir_entry in fs::read_dir(lonely_entry.path())? {
-            let subdir_entry = subdir_entry?;
-            fs::rename(
-                subdir_entry.path(),
-                target_dir.join(subdir_entry.file_name()),
-            )?;
-        }
-        fs::remove_dir(lonely_entry.path())?;
+    if lonely_entry.path().is_file() {
+        return Ok(());
     }
 
+    for subdir_entry in fs::read_dir(lonely_entry.path())? {
+        let subdir_entry = subdir_entry?;
+        fs::rename(
+            subdir_entry.path(),
+            extract_dir.join(subdir_entry.file_name()),
+        )?;
+    }
+    fs::remove_dir(lonely_entry.path())?;
     strip_directory(extract_dir, dir_to_extract)
 }
