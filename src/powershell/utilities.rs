@@ -4,12 +4,14 @@ use std::process::Command;
 use std::str::FromStr;
 
 use crate::powershell::installer::append_to_path;
-use crate::AlephConfig;
 
 const WGET_ERR: &str = "The term 'wget' is not recognized";
 // actually the only possible way for this to fail is for powershell to not be installed
 // in the operating system
 // COULD USE CMD FOR THIS WITH: echo %APPDATA% and using appdata/roaming/aleph as root directory
+/// Returns the home directory of the user executing the program
+/// # Panics
+/// - powershell not installed
 pub fn get_home_directory() -> PathBuf {
     let output = Command::new("pwsh")
         .args(["-c", "echo", "$home"])
@@ -61,7 +63,8 @@ pub fn download_url(
         // EXECUTE THIS PORTION IF WGET IS NOT FOUND;
         if stderr.contains(WGET_ERR) {
             let extract_dir = get_wget(packages_dir);
-            append_to_path(&get_home_directory(), &vec![extract_dir]);
+            append_to_path(&get_home_directory(), &vec![extract_dir])
+                .expect("failed to append wget to PATH");
             return download_url(url, download_location, packages_dir);
         }
         let Some((_url, path)) = stderr.split_once("->") else {

@@ -8,15 +8,22 @@ use std::path::PathBuf;
 
 // maybe branch these out into CONFIG/
 pub struct AlephConfig {
-    pub paths: AlephPaths,
+    paths: AlephPaths,
     // more to come later?
 }
 
 impl AlephConfig {
+    #[must_use]
     pub fn new() -> Self {
         let paths = AlephPaths::new();
         paths.initialize_root_dir();
         Self { paths }
+    }
+}
+
+impl Default for AlephConfig {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
