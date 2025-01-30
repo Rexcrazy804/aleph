@@ -1,178 +1,132 @@
-use crate::{
-    manifest::{bin::Binary, Manifest, OneOrMany},
-    powershell::{
-        installer::append_to_path,
-        utilities::{download_url, get_home_directory},
-    },
-    zipper::unzip_alt,
-};
+use std::path::PathBuf;
 
-// DEBUG SYSMBOLS
-// all must be set to FALSE after debugging
-const DEBUG_NOINSTALL: bool = false;
-const DEBUG_PRINT: bool = true;
+use crate::{
+    manifest::Manifest,
+    powershell::{installer::append_to_path, utilities::download_url},
+    zipper::extract_archive,
+    AlephConfig,
+};
 
 // TODO Replace error return type to a concrete enum that can account for the different errors
 // no sanoy this is not for you
-pub fn manifest_installer(manifest: &Manifest) -> Result<(), String> {
-    let home_dir = get_home_directory();
-    let download_dir = dbg!(format!("{home_dir}\\Downloads\\"));
-    let extract_dir = dbg!(format!("{home_dir}\\Documents\\aleph\\"));
+/// # Errors
+/// TODO: populate [document the possible erros sanoy you can do this part]
+/// # Panics
+/// TODO: populate [document the panic sanoy you can do this too]
+pub fn manifest_installer(
+    config: &AlephConfig,
+    manifest: &Manifest,
+    package_name: &str,
+) -> Result<(), String> {
+    // NOTE: if two buckets have packages with the same package name WE MUST force the user to
+    // declare which bucket the package is to be downloaded from. The user may declare the package
+    // to be installed from both buckets in which case we will need to set package name as
+    // package_name = <bucket-name>-<Package-name>
+    // TODO: implement above funtionality.
+    // Files will be installed to ROOT_DIR/Packages/<Package-name>/<Package_version>/
+    let package_version = &manifest.version;
+    let extract_dir = config
+        .paths
+        .packages
+        .join(package_name)
+        .join(package_version);
 
-    let url = manifest.get_url();
+    // check if program exists in path as well before exiting
+    //if let Ok(true) = extract_dir.try_exists() {
+    //    println!("Program {package_name} version {package_version} has already been installed");
+    //    return Ok(())
+    //}
 
-    // TODO hash the downloads so that we can extract them
-    // into <hash>-filename/ directories like nixos
-    let file_path = match url {
-        OneOrMany::One(url) => OneOrMany::One(download_url(&url, &download_dir)),
-        OneOrMany::Many(urls) => OneOrMany::Many(
-            urls.iter()
-                .map(|url| download_url(url, &download_dir))
-                .collect(),
-        ),
-    };
+    let downloaded_archives = manifest
+        .get_url()
+        .map(
+            |url| match download_url(&url, &config.paths.download, &config.paths.packages) {
+                Ok(dir) => dir,
+                Err(e) => panic!("{e}"),
+            },
+        )
+        .collect::<Vec<PathBuf>>();
 
-    println!("{file_path:?}");
-
-    let extracted_dir = match file_path {
-        OneOrMany::One(file_path) => {
-            let mut manifest_extract_dir = None;
-            if let Some(OneOrMany::One(dir)) = &manifest.extract_dir {
-                manifest_extract_dir = Some(dir);
-            };
-
-            let Ok(file_path) = file_path else {
-                panic!("FAILIURE");
-            };
-
-            let result = unzip_alt(&file_path, &extract_dir, manifest_extract_dir);
-            OneOrMany::One(result)
-        }
-
-        OneOrMany::Many(file_paths) => {
-            let result;
-            if let Some(OneOrMany::Many(dirs)) = &manifest.extract_dir {
-                result = file_paths
-                    .iter()
-                    .zip(dirs)
-                    .map(|(file_path, m_extract_dir)| {
-                        let Ok(file_path) = file_path else {
-                            panic!("FAILIURE");
-                        };
-
-                        unzip_alt(file_path, &extract_dir, Some(m_extract_dir))
-                    })
-                    .collect();
-            } else {
-                result = file_paths
-                    .iter()
-                    .map(|file_path| {
-                        let Ok(file_path) = file_path else {
-                            panic!("FAILIURE");
-                        };
-
-                        unzip_alt(file_path, &extract_dir, None)
-                    })
-                    .collect()
-            };
-            OneOrMany::Many(result)
-        }
-    };
-
-    if DEBUG_PRINT {
-        println!("EXTRACTED DIRECTORY: {extracted_dir:?}");
+    for archive in downloaded_archives {
+        extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
     }
 
-    // currently there is no real need to do this but once we start hashing our downloads we might
-    // end up
-    // WARN kinda hit a road bloack with shims, will leave it here for the time being
-    // TODO do something about shims :')
-
     // NOTE for the time being we'll be using this
-    let _ = match extracted_dir {
-        OneOrMany::One(dir) => {
-            let exutables =
-                get_executables(&dir, manifest.bin.clone().expect("No Binary found")).unwrap();
-            if !DEBUG_NOINSTALL {
-                append_to_path(&home_dir, &exutables).expect("failed to append to path")
-            }
-        }
-        OneOrMany::Many(dirs) => {
-            for dir in dirs {
-                let exutables =
-                    get_executables(&dir, manifest.bin.clone().expect("No Binary found")).unwrap();
-
-                if !DEBUG_NOINSTALL {
-                    append_to_path(&home_dir, &exutables).expect("Failed to append to path")
-                }
-            }
-        }
-    };
+    // We will need to go through the contents of the bin attribute to determine the nested
+    // folders that need to be symlinked
+    let _ = append_to_path(&config.paths.home, &vec![extract_dir]);
 
     Ok(())
 }
 
-fn get_executables(search_dir: &str, bin_attr: Binary) -> Result<Vec<String>, String> {
-    let mut binary_paths: Vec<String> = Vec::new();
+// // // // // // // RIP TO MAKING SIMLINKS :D THEY DO NOT WORK UNDER WINE // // // // // // //
+//// the current directory here is the Aleph/Current that will be holding all the symlinks to
+//// active packages' executables thus we only need to link this to Path
+//// extracting this into a variable so that it can be used later to include Aleph/Current into
+//// powershell path
+//let current_dir = root_path.join("Current");
+//create_dir(current_dir).expect("Failed to create Aleph/Current/");
+//// TODO: add current_dir to path (copy the append to path function pretty much);
+//
+//// symlink $HOME/Aleph to $HOME/Documents/.Aleph so that linux users can easily access
+//// aleph root directory (as wine symlinks ~/Documents to $HOME/Documents where $HOME is the
+//// wine prefix drive C's user home directory)
+//let symlink_path = symlink_path.join(".Aleph");
+//dbg!(&symlink_path); // // // // // // // // // // // // // // // // // // // // // // // //
 
-    if let Binary::Executable(exe) = &bin_attr {
-        binary_paths.append(&mut find_binaries(search_dir, &[exe.to_string()]));
-    };
+// UHH work on this crap later
+//fn get_executables(search_dir: &str, bin_attr: Binary) -> Result<Vec<String>, String> {
+//    let mut binary_paths: Vec<String> = Vec::new();
+//
+//    if let Binary::Executable(exe) = &bin_attr {
+//        binary_paths.append(&mut find_binaries(search_dir, &[exe.to_string()]));
+//    };
+//
+//    if let Binary::Executables(exes) = &bin_attr {
+//        binary_paths.append(&mut find_binaries(search_dir, exes));
+//    };
+//
+//    if let Binary::AliasedExecutables(aliased_exes) = &bin_attr {
+//        for alias_or_exe in aliased_exes {
+//            if let Binary::Executable(exe) = &alias_or_exe {
+//                binary_paths.append(&mut find_binaries(search_dir, &[exe.to_string()]));
+//            };
+//
+//            // now here comes the hard part :')
+//            #[allow(unused_variables)]
+//            if let Binary::Executables(aliases) = alias_or_exe {
+//                // WARN TODO
+//                // for the the time being we  will do nothing; plan is to create a function that
+//                // can handle this that will hopefully create a new aliased executable into the
+//                // ${search_directory} which will work as aliases are intended to work i.e being a
+//                // plain alias to a direct exe call OR calling the exe with specified parametres
+//            };
+//        }
+//    };
+//    Ok(binary_paths)
+//}
 
-    if let Binary::Executables(exes) = &bin_attr {
-        binary_paths.append(&mut find_binaries(search_dir, exes));
-    };
-
-    if let Binary::AliasedExecutables(aliased_exes) = &bin_attr {
-        for alias_or_exe in aliased_exes {
-            if let Binary::Executable(exe) = &alias_or_exe {
-                binary_paths.append(&mut find_binaries(search_dir, &[exe.to_string()]));
-            };
-
-            // now here comes the hard part :')
-            #[allow(unused_variables)]
-            if let Binary::Executables(aliases) = alias_or_exe {
-                // WARN TODO
-                // for the the time being we  will do nothing; plan is to create a function that
-                // can handle this that will hopefully create a new aliased executable into the
-                // ${search_directory} which will work as aliases are intended to work i.e being a
-                // plain alias to a direct exe call OR calling the exe with specified parametres
-            };
-        }
-    };
-    Ok(binary_paths)
-}
-
-/// returns the full path of each binary listed in the bin attribute of the manifest
-fn find_binaries(search_dir: &str, binaries: &[String]) -> Vec<String> {
-    // my question is whether we should directly add the binary itself to the PATH variable or whether we
-    // just need to include the parent directory?
-    // lets find out I suppose
-    // I found out and I am not happy with the result
-    let mut path_to_binary_parent_dirs: Vec<String> = Vec::new();
-    path_to_binary_parent_dirs.push(search_dir.to_string());
-
-    for binary in binaries {
-        let parrent_dir = binary.split('\\').rev().skip(1).collect::<String>();
-        if parrent_dir.is_empty() {
-            continue;
-        }
-
-        let full_path_to_parent = format!("{search_dir}\\{parrent_dir}");
-        path_to_binary_parent_dirs.push(full_path_to_parent);
-
-        if DEBUG_PRINT {
-            println!("binary: {binary}");
-            println!("parent dir: {parrent_dir}");
-        }
-    }
-
-    path_to_binary_parent_dirs.sort();
-    path_to_binary_parent_dirs.dedup();
-
-    if DEBUG_PRINT {
-        println!("parent paths: {path_to_binary_parent_dirs:?}");
-    }
-
-    path_to_binary_parent_dirs
-}
+// returns the full path of each binary listed in the bin attribute of the manifest
+//fn find_binaries(search_dir: &str, binaries: &[String]) -> Vec<String> {
+//    // my question is whether we should directly add the binary itself to the PATH variable or whether we
+//    // just need to include the parent directory?
+//    // lets find out I suppose
+//    // I found out and I am not happy with the result
+//    let mut path_to_binary_parent_dirs: Vec<String> = Vec::new();
+//    path_to_binary_parent_dirs.push(search_dir.to_string());
+//
+//    for binary in binaries {
+//        let parrent_dir = binary.split('\\').rev().skip(1).collect::<String>();
+//        if parrent_dir.is_empty() {
+//            continue;
+//        }
+//
+//        let full_path_to_parent = format!("{search_dir}\\{parrent_dir}");
+//        path_to_binary_parent_dirs.push(full_path_to_parent);
+//
+//    }
+//
+//    path_to_binary_parent_dirs.sort();
+//    path_to_binary_parent_dirs.dedup();
+//    path_to_binary_parent_dirs
+//}

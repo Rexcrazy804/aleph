@@ -21,6 +21,22 @@ pub enum OneOrMany<T> {
     Many(Vec<T>),
 }
 
+impl<T: Clone> Iterator for OneOrMany<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let OneOrMany::One(lonely_data) = self {
+            *self = OneOrMany::Many(vec![lonely_data.clone()]);
+        }
+
+        let OneOrMany::Many(vector) = self else {
+            unreachable!();
+        };
+
+        vector.pop()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
     // REQUIRED properties
@@ -69,9 +85,19 @@ pub struct ModuleName {
 }
 
 impl Manifest {
+    pub fn parse(str: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(str)
+    }
+
+    /// this function is a simple interface to extract the url from the manifest
+    /// all functional manifests WILL HAVE atleast one valid url in
+    /// ```Manifest.arch or Manifest.architecture.*.url```
+    /// # Panics
+    /// this function can panic if no url: or Architecture.<arch>.url is found
+    #[must_use]
     pub fn get_url(&self) -> OneOrMany<String> {
-        let None = &self.url else {
-            return self.url.clone().unwrap();
+        if let Some(url) = &self.url {
+            return url.clone();
         };
 
         let Some(arch) = &self.architecture else {

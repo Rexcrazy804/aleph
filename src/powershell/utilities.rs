@@ -1,80 +1,125 @@
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::str::FromStr;
 
+use crate::powershell::installer::append_to_path;
+
+const WGET_ERR: &str = "The term 'wget' is not recognized";
 // actually the only possible way for this to fail is for powershell to not be installed
 // in the operating system
-pub fn get_home_directory() -> String {
+// COULD USE CMD FOR THIS WITH: echo %APPDATA% and using appdata/roaming/aleph as root directory
+/// Returns the home directory of the user executing the program
+/// # Panics
+/// - powershell not installed
+pub fn get_home_directory() -> PathBuf {
     let output = Command::new("pwsh")
         .args(["-c", "echo", "$home"])
         .output()
         .expect("Failed to execute process [is powershell installed?]");
 
     let home_directory = String::from_utf8(output.stdout).unwrap().trim().to_string();
-    home_directory
+    PathBuf::from(home_directory)
 }
 
 /// attempts to download the given url to the provided directory and returns the path to the
-/// downloaded file. TODO correct the return type to be a a std::path::PATH
-pub fn download_url(url: &str, download_location: &str) -> Result<String, String> {
-    let filename = get_filename(url).unwrap_or("file.zip".to_string());
+/// downloaded file.
+/// # Panics
+/// - Unable to convert the ``download_location`` to a string
+/// - Unable to convert the string containing the path to the downloaded file into a ``PathBuf``
+///
+/// # Errors
+/// - Failure to run powershell (*powershell is not installed*)
+/// - Failure to find *wget.exe* in PATH
+/// - Invalid url
+pub fn download_url(
+    url: &str,
+    download_location: &Path,
+    packages_dir: &Path,
+) -> Result<PathBuf, String> {
+    println!("Downloading file {url}...");
 
-    println!("Downloading file {filename}");
-
-    // empty to select current directory
-    let file_path = download_location.to_string() + &filename;
-
-    let Ok(output) = Command::new("pwsh")
-        .args(["-c", "Invoke-WebRequest", url, "-OutFile ", &file_path])
-        .output()
-    else {
-        return Err("Failed to execute request".to_string());
-    };
-
-    match String::from_utf8(output.stderr) {
-        Ok(stderr) => {
-            if stderr.is_empty() {
-                println!("Download Sucessfull");
-                Ok(file_path)
-            } else {
-                Err(stderr)
-            }
-        }
-        Err(_) => Err("Failed to parse stderr".to_string()),
-    }
-}
-
-fn get_filename(url: &str) -> Option<String> {
-    let last_token = url.split('/').last()?;
-
-    if last_token.contains('.') {
-        Some(last_token.to_string())
-    } else {
-        None
-    }
-}
-
-// First we need to get this to be able to extract simple .msi file from Destination to target
-// Adjacently we'll need to implemnet a helper funtion called String injector that will be
-// repsonbile for replacing powerhsell $variables with corresponding values on the fly
-// I am thinking of a function that takes a string and HashMap<"variablename" : "Value">
-// with optional fields to then look for and replace $variable instances with their value
-pub fn extract_msi(file_path: &str, target_dir: &str) {
-    println!("WARN support for msi installation is incomplete!");
     let Ok(output) = Command::new("pwsh")
         .args([
             "-c",
-            "msiexec.exe",
-            "/i",
-            file_path,
-            "/qn",
-            &format!("INSTALLDIR={target_dir}"),
+            "wget",
+            "-nv",
+            url,
+            "-P",
+            download_location
+                .to_str()
+                .expect("Failed to convert location to String"),
+        ])
+        .output()
+    else {
+        // TODO in the event that this fails try using powershell's invoke web request [previous
+        // method] to download wget and append it to path and retry the download. Sanoy you can
+        // give this a shot
+        return Err("Failed to execute request".to_owned());
+    };
+
+    // dk why but wget writes to stderr by default .w.
+    if let Ok(stderr) = String::from_utf8(output.stderr) {
+        // EXECUTE THIS PORTION IF WGET IS NOT FOUND;
+        if stderr.contains(WGET_ERR) {
+            let extract_dir = get_wget(packages_dir);
+            append_to_path(&get_home_directory(), &vec![extract_dir])
+                .expect("failed to append wget to PATH");
+            return download_url(url, download_location, packages_dir);
+        }
+        let Some((_url, path)) = stderr.split_once("->") else {
+            println!("{stderr}");
+            return Err("Failed to parse wget output".to_string());
+        };
+        let Some((path, _)) = path.trim().split_once(' ') else {
+            return Err("Failed to parse wget output".to_string());
+        };
+
+        // just to not cause weird inconsistencies
+        let path = path.trim_matches('"').replace('/', "\\");
+        println!("Succesfully Downloaded to: {path}");
+        let archive = PathBuf::from_str(&path).expect("Failed to convert string to path");
+        return Ok(archive);
+    }
+
+    Err("Wget generated no output / Powershell is not installed".to_owned())
+}
+
+/// gets the wget executable if wget is missing
+/// # Panics
+/// - conversion of path to string
+#[must_use]
+pub fn get_wget(packages_path: &Path) -> PathBuf {
+    const VERSION: &str = "1.21.4";
+    let arch = match std::env::consts::ARCH {
+        "x86" => "32",
+        "x86_64" => "64",
+        "aarch64" => "a64",
+        _ => panic!("Unsupported architecture"),
+    };
+
+    let url = format!("https://eternallybored.org/misc/wget/{VERSION}/{arch}/wget.exe");
+    let filename = "wget.exe";
+    println!("Downloading file {filename}...");
+
+    let extract_dir = packages_path.join("wget").join(VERSION);
+    fs::create_dir_all(&extract_dir).expect("Failed to create extract dir");
+
+    // empty to select current directory
+    let file_path = extract_dir.join(filename);
+
+    let Ok(_output) = Command::new("pwsh")
+        .args([
+            "-c",
+            "Invoke-WebRequest",
+            &url,
+            "-OutFile ",
+            file_path.to_str().unwrap(),
         ])
         .output()
     else {
         panic!("Failed to execute request");
     };
 
-    println!("{}", String::from_utf8(output.stdout).unwrap());
-    if !output.stderr.is_empty() {
-        eprintln!("{}", String::from_utf8(output.stderr).unwrap());
-    }
+    extract_dir
 }
