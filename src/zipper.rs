@@ -22,14 +22,16 @@ pub fn extract_archive(
     // a folder on top of etract dir
     // TODO: add optional argument to explicitly provide filename
     use fs::{create_dir_all, remove_file};
-    let (_, file_type) = archive
+    let file_type = archive
         .iter()
         .last()
         .unwrap()
         .to_str()
         .unwrap()
-        .split_once('.')
+        .split('.')
+        .last()
         .unwrap();
+
     create_dir_all(extract_directory).expect("Failed to create directory");
     println!("Created package directory");
 
