@@ -1,4 +1,4 @@
-use aleph::cli::Action;
+use aleph::{cli::Action, AlephConfig};
 use std::env;
 
 fn main() {
@@ -28,11 +28,13 @@ fn main() {
     // [FUTURE]
     // aleph rebuild <config file>
 
+    let config = AlephConfig::new();
+
     let action = Action::parse(env::args())
         .expect("Invalid Subcommand. Use aleph --help for a list of subcommands");
 
     // TODO: Error handling for this
-    if let Err(error) = action.dispatch() {
+    if let Err(error) = action.dispatch(&config) {
         eprintln!("{error}");
     };
 }

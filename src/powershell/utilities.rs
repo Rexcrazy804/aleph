@@ -4,6 +4,7 @@ use std::process::Command;
 use std::str::FromStr;
 
 use crate::powershell::installer::append_to_path;
+use crate::AlephConfig;
 
 const WGET_ERR: &str = "The term 'wget' is not recognized";
 // actually the only possible way for this to fail is for powershell to not be installed
@@ -29,7 +30,11 @@ pub fn get_home_directory() -> PathBuf {
 /// - Failure to run powershell (*powershell is not installed*)
 /// - Failure to find *wget.exe* in PATH
 /// - Invalid url
-pub fn download_url(url: &str, download_location: &Path) -> Result<PathBuf, String> {
+pub fn download_url(
+    url: &String,
+    download_location: &Path,
+    packages_dir: &Path,
+) -> Result<PathBuf, String> {
     println!("Downloading file {url}...");
 
     let Ok(output) = Command::new("pwsh")
@@ -55,9 +60,9 @@ pub fn download_url(url: &str, download_location: &Path) -> Result<PathBuf, Stri
     if let Ok(stderr) = String::from_utf8(output.stderr) {
         // EXECUTE THIS PORTION IF WGET IS NOT FOUND;
         if stderr.contains(WGET_ERR) {
-            let extract_dir = get_wget();
+            let extract_dir = get_wget(packages_dir);
             append_to_path(&get_home_directory(), &vec![extract_dir]);
-            return download_url(url, download_location);
+            return download_url(url, download_location, packages_dir);
         }
         let Some((_url, path)) = stderr.split_once("->") else {
             println!("{stderr}");
@@ -81,11 +86,12 @@ pub fn download_url(url: &str, download_location: &Path) -> Result<PathBuf, Stri
 /// # Panics
 /// - conversion of path to string
 #[must_use]
-pub fn get_wget() -> PathBuf {
+pub fn get_wget(packages_path: &Path) -> PathBuf {
     const VERSION: &str = "1.21.4";
     let arch = match std::env::consts::ARCH {
         "x86" => "32",
         "x86_64" => "64",
+        "aarch64" => "a64",
         _ => panic!("Unsupported architecture"),
     };
 
@@ -93,9 +99,7 @@ pub fn get_wget() -> PathBuf {
     let filename = "wget.exe";
     println!("Downloading file {filename}...");
 
-    let home_dir = get_home_directory();
-    let root_dir = home_dir.join("Aleph");
-    let extract_dir = root_dir.join("Packages\\wget").join(VERSION);
+    let extract_dir = packages_path.join("wget").join(VERSION);
     fs::create_dir_all(&extract_dir).expect("Failed to create extract dir");
 
     // empty to select current directory

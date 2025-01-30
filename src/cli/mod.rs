@@ -1,5 +1,7 @@
 mod subcommands;
 use subcommands::SubCommand;
+
+use crate::AlephConfig;
 pub struct Action {
     sub_command: SubCommand,
     argument: Option<String>,
@@ -48,7 +50,7 @@ impl Action {
         }
     }
 
-    pub fn dispatch(&self) -> Result<(), String> {
-        self.sub_command.dispatch(self.argument.as_ref())
+    pub fn dispatch(&self, config: &AlephConfig) -> Result<(), String> {
+        self.sub_command.dispatch(config, self.argument.as_ref())
     }
 }

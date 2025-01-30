@@ -39,11 +39,13 @@ pub fn append_to_path(home_dir: &Path, paths: &Vec<PathBuf>) -> std::io::Result<
     let home_dir_str = home_dir
         .to_str()
         .expect("Failed to convert home_dir into str");
+
     for path in paths {
         let path = path.to_str().expect("Failed to convert path into str");
         let replaced_path = path.replace(home_dir_str, "$HOME");
         intermediate_path_buffer.push("  \"".to_owned() + &replaced_path + ";\"" + " +");
     }
+
     let mut paths_entry_flag = false;
 
     for line in ps_profile.lines() {
