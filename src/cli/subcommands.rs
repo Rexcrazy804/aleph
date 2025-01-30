@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::AlephConfig;
 
 pub(super) enum SubCommand {
@@ -32,20 +34,20 @@ fn display_help() {
     println!("aleph <subcommand> <argument>");
     colorize_print_description(
         "92",
-        "search",
+        "search <package>",
         "search for packages in the current repository",
         None,
     );
     colorize_print_description(
         "92",
-        "install",
+        "install <package>",
         "install packages in the current repository",
         None,
     );
     colorize_print_description(
         "92",
-        "fetch",
-        "fetch the latest available version of the repository",
+        "fetch <bucketname> <url>",
+        "fetch a given bucket from url",
         None,
     );
     colorize_print_description("92", "--help", "display this help", None);
@@ -58,35 +60,39 @@ fn colorize_print_description(color: &str, command: &str, description: &str, tab
     println!("\x1b[{color}m{command}\x1b[0m{tabs}- {description}");
 }
 
-fn fetch_repo(config: &AlephConfig, url: Option<&String>) -> Result<(), String> {
-    unimplemented!("FUNCTION BORKED AWAITING fixed IMPLEMENTATION");
-    use crate::powershell::utilities::{download_url, get_home_directory};
+fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), String> {
+    use crate::powershell::utilities::download_url;
     use crate::zipper::extract_archive;
 
-    //let url = if url.is_some() {
-    //    url.unwrap()
-    //} else {
-    //    "https://codeload.github.com/ScoopInstaller/Main/zip/refs/heads/master"
-    //};
+    let (bucket_name, url) = if let Some(arg) = argument {
+        let arg = arg.trim();
+        arg.split_once(' ').expect("Invalid arguments to fetch")
+    } else {
+        println!("WARN NO ARGUMENT PROVIDED, assuming default bucket main");
+        (
+            "main",
+            "https://codeload.github.com/ScoopInstaller/Main/zip/refs/heads/master",
+        )
+    };
 
-    // prolly have to condense this into a config that is readable
-    // maybe
-    //let home_dir = get_home_directory();
-    //let download_dir = format!("{home_dir}\\Downloads\\");
-    //let extract_dir = format!(
-    //    "{home_dir}\\Documents\\aleph\\__REPO-{}",
-    //    url.split('/')
-    //        .last()
-    //        .expect("Failed to identify bucket name")
-    //);
+    let bucket_dir = config.paths.buckets.join(bucket_name);
+    if let Ok(true) = bucket_dir.try_exists() {
+        println!("Bucket already exists / use a different bucket name!!");
+        return Ok(());
+    }
 
-    //let Ok(file_path) = download_url(url, &download_dir) else {
-    //    return Err("Failed to download File".to_string());
-    //};
+    std::fs::create_dir(&bucket_dir).expect("Failed to create directory for bucket {bucket_name}");
 
-    // we aren't using the path for the time being but we will need to log it down somwhere
-    // once support for mutliple repos are established
-    //let _ = unzip_alt(&file_path, &extract_dir, None);
+    let Ok(archive) = download_url(url, &config.paths.download, &config.paths.packages) else {
+        return Err("Failed to download File".to_string());
+    };
+
+    let mut new_archive = archive.clone();
+    new_archive.set_file_name("bucket.zip");
+
+    std::fs::rename(archive, &new_archive).expect("Failed to rename archive");
+    extract_archive(&new_archive, &bucket_dir, None);
+
     Ok(())
 }
 

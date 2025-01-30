@@ -31,7 +31,7 @@ pub fn get_home_directory() -> PathBuf {
 /// - Failure to find *wget.exe* in PATH
 /// - Invalid url
 pub fn download_url(
-    url: &String,
+    url: &str,
     download_location: &Path,
     packages_dir: &Path,
 ) -> Result<PathBuf, String> {
