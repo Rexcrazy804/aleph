@@ -8,6 +8,7 @@ pub(super) enum SubCommand {
     Search,
     Install,
     Fetch,
+    Uninstall,
 
     // future [eta end of march]
     #[allow(dead_code)]
@@ -24,6 +25,7 @@ impl SubCommand {
             SubCommand::Search => search_repo(config, argument),
             SubCommand::Install => install_repo_manifest(config, argument),
             SubCommand::Fetch => fetch_repo(config, argument),
+            SubCommand::Uninstall => uninstall_package(config, argument),
             SubCommand::Rebuild => unimplemented!(""),
         }
     }

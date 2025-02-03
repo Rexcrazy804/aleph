@@ -46,6 +46,7 @@ impl Action {
             "install" => Ok(Action::new(SubCommand::Install, support_arguments)),
             "fetch" => Ok(Action::new(SubCommand::Fetch, support_arguments)),
             "search" => Ok(Action::new(SubCommand::Search, support_arguments)),
+            "uninstall" => Ok(Action::new(SubCommand::Uninstall, support_argument)),
             _ => Err(()),
         }
     }
