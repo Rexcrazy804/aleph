@@ -1,5 +1,6 @@
 use aleph::manifest::license::{CustomLicense, License};
 use aleph::manifest::{bin::Binary, Manifest, OneOrMany as OM};
+use std::collections::VecDeque;
 use std::fs;
 
 // TODO: cover every possible attribute in as many different ways as possible
@@ -79,24 +80,24 @@ fn architecture_attribute() {
 
     let data = data.architecture.unwrap();
     assert_eq!(
-        Some(OM::Many(vec![
+        Some(OM::Many(VecDeque::from([
             String::from("https://www.irfanview.info/files/iview467_x64.zip"),
             String::from("https://www.irfanview.info/files/iview467_plugins_x64.zip")
-        ])),
+        ]))),
         data.clone().x86_64.unwrap().url
     );
     assert_eq!(
-        Some(OM::Many(vec![
+        Some(OM::Many(VecDeque::from([
             String::from("https://www.irfanview.info/files/iview467.zip"),
             String::from("https://www.irfanview.info/files/iview467_plugins.zip")
-        ])),
+        ]))),
         data.clone().x86.unwrap().url
     );
     assert_eq!(
-        Some(OM::Many(vec![
+        Some(OM::Many(VecDeque::from([
             String::from("75aeec57c780ae7ad6e15f750e34f62abedb1569efce1bfc2d6023d4a045f5a3"),
             String::from("9d62c7b44c8d83c617758d90d373b3dd25dfa9af90a45a2c9629c4998b35d29a")
-        ])),
+        ]))),
         data.clone().x86.unwrap().hash
     );
 

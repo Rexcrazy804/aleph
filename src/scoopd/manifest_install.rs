@@ -53,8 +53,20 @@ pub fn manifest_installer(
         )
         .collect::<Vec<PathBuf>>();
 
-    for archive in downloaded_archives {
-        extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
+    if let Some(extract_to_paths) = manifest.extract_to.as_ref() {
+        for (archive, extract_to_path) in downloaded_archives.iter().zip(extract_to_paths.clone()) {
+            let dont_change_path = extract_to_path.is_empty() || extract_to_path == ".";
+            let extract_dir = if dont_change_path {
+                &extract_dir
+            } else {
+                &extract_dir.join(extract_to_path)
+            };
+            extract_archive(archive, extract_dir, manifest.extract_dir.as_ref());
+        }
+    } else {
+        for archive in downloaded_archives {
+            extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
+        }
     }
 
     // NOTE for the time being we'll be using this

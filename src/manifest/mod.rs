@@ -12,13 +12,13 @@ use license::License;
 use persist::Persist;
 use serde::{Deserialize, Serialize};
 use shortcuts::Shortcuts;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(untagged)]
 pub enum OneOrMany<T> {
     One(T),
-    Many(Vec<T>),
+    Many(VecDeque<T>),
 }
 
 impl<T: Clone> Iterator for OneOrMany<T> {
@@ -26,14 +26,14 @@ impl<T: Clone> Iterator for OneOrMany<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let OneOrMany::One(lonely_data) = self {
-            *self = OneOrMany::Many(vec![lonely_data.clone()]);
+            *self = OneOrMany::Many(VecDeque::from([lonely_data.clone()]));
         }
 
         let OneOrMany::Many(vector) = self else {
             unreachable!();
         };
 
-        vector.pop()
+        vector.pop_front()
     }
 }
 

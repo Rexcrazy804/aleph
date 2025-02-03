@@ -9,7 +9,6 @@ use std::path::PathBuf;
 // maybe branch these out into CONFIG/
 pub struct AlephConfig {
     paths: AlephPaths,
-    // more to come later?
 }
 
 impl AlephConfig {
@@ -18,6 +17,12 @@ impl AlephConfig {
         let paths = AlephPaths::new();
         paths.initialize_root_dir();
         Self { paths }
+    }
+
+    // required for tests
+    #[must_use]
+    pub fn get_buckets_path(&self) -> &PathBuf {
+        &self.paths.buckets
     }
 }
 

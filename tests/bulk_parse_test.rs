@@ -1,11 +1,13 @@
-use aleph::manifest::Manifest;
+use aleph::{manifest::Manifest, AlephConfig};
 use std::fs;
 
 #[test]
 #[ignore] // we don't want this test to run by default [its expensive kinda .w.]
 fn bulk_parse() {
     // hardcoding this to point to the main scoop bucket so that I can actually parse EVERYTHING
-    let data_dir = fs::read_dir("Z:/home/rexies/temp/ScoopMainBucket/bucket/")
+
+    let config = AlephConfig::new();
+    let data_dir = fs::read_dir(config.get_buckets_path().join("main\\bucket"))
         .expect("Failed to read data directory");
 
     let mut file_count = 0;
