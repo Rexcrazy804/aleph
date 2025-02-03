@@ -24,6 +24,10 @@ impl AlephConfig {
     pub fn get_buckets_path(&self) -> &PathBuf {
         &self.paths.buckets
     }
+    #[must_use]
+    pub fn get_root_path(&self) -> &PathBuf {
+        &self.paths.root
+    }
 }
 
 impl Default for AlephConfig {
