@@ -1,6 +1,10 @@
-use crate::manifest::Manifest;
+use crate::scoopd::manifest_uninstall;
 use crate::AlephConfig;
-use std::path::{Path, PathBuf};
+use crate::{manifest::Manifest, scoopd::manifest_uninstall::remove_package_dir};
+use std::{
+    fmt::Arguments,
+    path::{Path, PathBuf},
+};
 
 pub(super) enum SubCommand {
     // help is a special subcommand for the --help flag
@@ -8,6 +12,7 @@ pub(super) enum SubCommand {
     Search,
     Install,
     Fetch,
+    Uninstall,
 
     // future [eta end of march]
     #[allow(dead_code)]
@@ -24,6 +29,7 @@ impl SubCommand {
             SubCommand::Search => search_repo(config, argument),
             SubCommand::Install => install_repo_manifest(config, argument),
             SubCommand::Fetch => fetch_repo(config, argument),
+            SubCommand::Uninstall => uninstall_package(config, argument),
             SubCommand::Rebuild => unimplemented!(""),
         }
     }
@@ -140,6 +146,32 @@ fn install_repo_manifest(config: &AlephConfig, arg: Option<&String>) -> Result<(
         manifest_installer(config, &manifest, package)?;
     }
 
+    Ok(())
+}
+
+pub fn uninstall_package(config: &AlephConfig, arg: Option<&String>) -> Result<(), String> {
+    // Ensure we have an argument.
+    let arg = arg.ok_or("Package name required for uninstall.".to_string())?;
+
+    // Split the argument string into individual package names.
+    for pkg in arg.split_whitespace().map(|s| s.trim()) {
+        // Compute the expected package directory: $HOME\Aleph\Packages\<pkg>
+        let package_path: PathBuf = config.paths.packages.join(pkg);
+        if !package_path.exists() {
+            println!("Package '{}' not found at {:?}", pkg, package_path);
+            continue; // Skip this package if the directory does not exist.
+        }
+        println!(
+            "Found package '{}' at {:?}. Proceeding with uninstall...",
+            pkg, package_path
+        );
+
+        // Call the manifest uninstallation logic.
+        // We assume that in your manifest_uninstall.rs you have a function like:
+        // `pub fn uninstall_repo_manifest(config: &AlephConfig, arg: Option<&String>) -> Result<(), String>`
+        // which handles deleting the files for a given package.
+        remove_package_dir(config, Some(&pkg.to_string()))?;
+    }
     Ok(())
 }
 
