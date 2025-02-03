@@ -1,6 +1,10 @@
 use crate::manifest::Manifest;
+use crate::scoopd::manifest_uninstall::uninstall_package;
 use crate::AlephConfig;
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Arguments,
+    path::{Path, PathBuf},
+};
 
 pub(super) enum SubCommand {
     // help is a special subcommand for the --help flag
@@ -25,7 +29,13 @@ impl SubCommand {
             SubCommand::Search => search_repo(config, argument),
             SubCommand::Install => install_repo_manifest(config, argument),
             SubCommand::Fetch => fetch_repo(config, argument),
-            SubCommand::Uninstall => uninstall_package(config, argument),
+            SubCommand::Uninstall => {
+                if let Some(pkg_name) = argument {
+                    uninstall_package(config, pkg_name)
+                } else {
+                    Err("Package name required for uninstall.".to_string())
+                }
+            }
             SubCommand::Rebuild => unimplemented!(""),
         }
     }
