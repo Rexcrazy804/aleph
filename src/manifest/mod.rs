@@ -85,6 +85,8 @@ pub struct ModuleName {
 }
 
 impl Manifest {
+    /// # Errors
+    /// - invalid json input would result in a ``serde_json::Error``.
     pub fn parse(str: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(str)
     }
