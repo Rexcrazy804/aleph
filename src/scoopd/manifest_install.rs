@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
+    cli::subcommands::find_package,
     manifest::{bin::normalized_executable_directores, Manifest},
     powershell::{installer::append_to_path, utilities::download_url},
     zipper::extract_archive,
@@ -12,12 +13,27 @@ use crate::{
 /// # Errors
 /// TODO: populate [document the possible erros sanoy you can do this part]
 /// # Panics
+/// Failing to read or parse dependencies
 /// TODO: populate [document the panic sanoy you can do this too]
 pub fn manifest_installer(
     config: &AlephConfig,
     manifest: &Manifest,
     package_name: &str,
 ) -> Result<(), String> {
+    if let Some(dependencies) = &manifest.depends {
+        for dependency in dependencies.clone() {
+            let Some(manifest_path) = find_package(config, &dependency) else {
+                return Err(format!("Unable to install DEPENDENCY {dependency}"));
+            };
+
+            let manifest_data =
+                std::fs::read_to_string(manifest_path).expect("Failed to read Manifest");
+            let manifest = Manifest::parse(&manifest_data).expect("Failed to parse manifest");
+            println!("\x1b[92mInstalling Dependency {dependency}\x1b[0m");
+            manifest_installer(config, &manifest, &dependency)?;
+        }
+    };
+
     // NOTE: if two buckets have packages with the same package name WE MUST force the user to
     // declare which bucket the package is to be downloaded from. The user may declare the package
     // to be installed from both buckets in which case we will need to set package name as
@@ -83,5 +99,6 @@ pub fn manifest_installer(
         let _ = append_to_path(&config.paths.home, &vec![extract_dir]);
     }
 
+    println!("\x1b[92minstalled {package_name}\x1b[0m");
     Ok(())
 }

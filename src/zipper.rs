@@ -49,8 +49,7 @@ pub fn extract_archive(
 
 fn extract_zip(archive: &Path, extract_dir: &Path) {
     let archive: Vec<u8> = std::fs::read(archive).expect("Failed to read file");
-    zip_extract::extract(Cursor::new(archive), &PathBuf::from(extract_dir), true)
-        .expect("Failed to extract");
+    zip_extract::extract(Cursor::new(archive), extract_dir, true).expect("Failed to extract");
 }
 
 fn extract_7z(archive: &Path, extract_dir: &Path) {

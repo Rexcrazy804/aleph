@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub(super) enum SubCommand {
+pub enum SubCommand {
     // help is a special subcommand for the --help flag
     Help,
     Search,
@@ -20,6 +20,9 @@ pub(super) enum SubCommand {
 }
 
 impl SubCommand {
+    /// simple dispatcher for available subcommands
+    /// # Errors
+    /// Returns relevant errors as a string .w. [we can do better]
     pub fn dispatch(&self, config: &AlephConfig, argument: Option<&String>) -> Result<(), String> {
         match self {
             SubCommand::Help => {
@@ -120,22 +123,8 @@ fn install_repo_manifest(config: &AlephConfig, arg: Option<&String>) -> Result<(
     let packages = arg.split_whitespace();
     for package in packages {
         let package = package.trim();
-        let mut manifest_path: Option<PathBuf> = None;
 
-        for bucket in config.paths.buckets.read_dir().expect("") {
-            let Ok(bucket) = bucket else {
-                println!("Failed to read bucket entry");
-                continue;
-            };
-            let manifest_bucket_path = bucket.path().join("bucket").join(format!("{package}.json"));
-            if let Ok(true) = manifest_bucket_path.try_exists() {
-                println!("found package manifest at {manifest_bucket_path:?}");
-                manifest_path = Some(manifest_bucket_path);
-                break;
-            }
-        }
-
-        let Some(manifest_path) = manifest_path else {
+        let Some(manifest_path) = find_package(config, package) else {
             println!("Pakcage {package} not found");
             continue;
         };
@@ -175,6 +164,22 @@ pub fn uninstall_package(config: &AlephConfig, arg: Option<&String>) -> Result<(
     Ok(())
 }
 
+pub(crate) fn find_package(config: &AlephConfig, package: &str) -> Option<PathBuf> {
+    for bucket in config.paths.buckets.read_dir().expect("") {
+        let Ok(bucket) = bucket else {
+            println!("Failed to read bucket entry");
+            continue;
+        };
+        let manifest_bucket_path = bucket.path().join("bucket").join(format!("{package}.json"));
+        if let Ok(true) = manifest_bucket_path.try_exists() {
+            println!("found package manifest at {manifest_bucket_path:?}");
+            return Some(manifest_bucket_path);
+        }
+    }
+
+    None
+}
+
 fn search_repo(config: &AlephConfig, keywords: Option<&String>) -> Result<(), String> {
     // will need to modify this when multi bucket support is added
     let buckets_path = &config.paths.buckets;
@@ -199,7 +204,13 @@ fn search_repo(config: &AlephConfig, keywords: Option<&String>) -> Result<(), St
     Ok(())
 }
 
-fn search_bucket(keywords: &Vec<&str>, bucket: &Path) {
+//TODO add optional support for specifying bucket
+/// searches for the given package name within all available buckets and returns the first matching
+/// entry
+///
+/// # Panics
+/// Will panic the buckets directory does not exist / is inaccesible
+pub fn search_bucket(keywords: &Vec<&str>, bucket: &Path) {
     for manifest_file in bucket.read_dir().expect("Failed to read dir") {
         let Ok(manifest_file) = manifest_file else {
             println!("Failed to read entry: {manifest_file:?}");
