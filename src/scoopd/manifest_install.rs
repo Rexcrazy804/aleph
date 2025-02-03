@@ -24,6 +24,12 @@ pub fn manifest_installer(
     // package_name = <bucket-name>-<Package-name>
     // TODO: implement above funtionality.
     // Files will be installed to ROOT_DIR/Packages/<Package-name>/<Package_version>/
+    if let Some(notes) = manifest.notes.as_ref() {
+        for note in notes.clone() {
+            println!("\x1b[92m{note}\x1b[0m");
+        }
+    }
+
     let package_version = &manifest.version;
     let extract_dir = config
         .paths
