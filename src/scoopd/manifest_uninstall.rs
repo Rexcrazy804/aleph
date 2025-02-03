@@ -1,6 +1,5 @@
 use crate::AlephConfig;
 use std::fs;
-use std::path::PathBuf;
 
 pub fn uninstall_package(config: &AlephConfig, package_name: &str) -> Result<(), String> {
     let package_path = config.paths.packages.join(package_name);
@@ -13,7 +12,7 @@ pub fn uninstall_package(config: &AlephConfig, package_name: &str) -> Result<(),
 
     println!("Uninstalling package: {}...", package_name);
 
-    remove_from_profile(config, &package_path)?;
+    remove_from_profile(config, package_name)?;
 
     fs::remove_dir_all(&package_path)
         .map_err(|e| format!("Failed to remove package directory: {}", e))?;
@@ -22,33 +21,38 @@ pub fn uninstall_package(config: &AlephConfig, package_name: &str) -> Result<(),
     Ok(())
 }
 
-fn remove_from_profile(config: &AlephConfig, package_path: &PathBuf) -> Result<(), String> {
+fn remove_from_profile(config: &AlephConfig, package_name: &str) -> Result<(), String> {
     let profile_path = config
         .paths
         .home
         .join("Documents")
-        .join("Powershell")
+        .join("PowerShell")
         .join("Microsoft.PowerShell_profile.ps1");
 
     let profile_content = fs::read_to_string(&profile_path)
-        .map_err(|e| format!("Failed to read Powershell profile: {}", e))?;
+        .map_err(|e| format!("Failed to read PowerShell profile: {}", e))?;
 
-    let package_path_str = package_path
-        .to_str()
-        .ok_or("Failed to convert package path to string")?;
+    println!("Original profile content:\n{}", profile_content);
 
-    let new_profile = profile_content
+    let search_str = format!("\\{}\\", package_name.trim());
+    println!("Filtering out lines containing: {}", search_str);
+
+    let filtered_lines: Vec<String> = profile_content
         .lines()
-        .filter(|line| !line.contains(package_path_str))
-        .collect::<Vec<&str>>()
-        .join("\n");
+        .filter(|line| !line.contains(&search_str))
+        .map(|line| line.to_string())
+        .collect();
+
+    let new_profile = filtered_lines.join("\n");
+
+    println!("New profile content:\n{}", new_profile);
 
     fs::write(&profile_path, new_profile)
-        .map_err(|e| format!("Failed to update Powershell profile: {}", e))?;
+        .map_err(|e| format!("Failed to update PowerShell profile: {}", e))?;
 
     println!(
-        "Removed package path from PowerShell profiel: {:?}",
-        package_path
+        "Removed all lines containing \"{}\" from PowerShell profile.",
+        search_str
     );
     Ok(())
 }
