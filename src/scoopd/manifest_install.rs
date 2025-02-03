@@ -37,8 +37,8 @@ pub fn manifest_installer(
         .join(package_name)
         .join(package_version);
 
-    // check if program exists in path as well before exiting
-    //if let Ok(true) = extract_dir.try_exists() {
+    // TODO (sanoy) check if program exists in path as well before exiting
+    // if let Ok(true) = extract_dir.try_exists() {
     //    println!("Program {package_name} version {package_version} has already been installed");
     //    return Ok(())
     //}
