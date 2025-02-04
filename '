@@ -33,14 +33,11 @@ pub fn extract_archive(
 
     match file_type {
         "7z" | "zip" | "lzma" | "gz" | "lzh" | "rar" | "tar" | "zst" | "xz" | "001" => {
-            if let Err(err) = extract_7z(archive, extract_directory) {
-                if let ExtractError::SevenZNotFound = err {
-                    dependency_install(config, "7zip");
-                    extract_archive(config, archive, extract_directory, dir_to_extract)?
-                } else {
-                    return Err(err);
-                }
-            }
+            if let Err(ExtractError::SevenZNotFound) = extract_7z(archive, extract_directory) {
+                dependency_install(config, "7zip");
+                extract_archive(config, archive, extract_directory, dir_to_extract)?
+            } else {
+            };
         }
         "msi" => {
             extract_msi(archive, extract_directory)?;

@@ -72,19 +72,16 @@ pub fn manifest_installer(
             } else {
                 &extract_dir.join(extract_to_path)
             };
-            let result = extract_archive(archive, extract_dir, manifest.extract_dir.as_ref());
-            if let Err(ExtractError::SevenZNotFound) = result {
-                dependency_install(config, "7zip")?;
-                extract_archive(archive, extract_dir, manifest.extract_dir.as_ref());
-            };
+            let _ = extract_archive(config, archive, extract_dir, manifest.extract_dir.as_ref());
         }
     } else {
         for archive in downloaded_archives {
-            let result = extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
-            if let Err(ExtractError::SevenZNotFound) = result {
-                dependency_install(config, "7zip")?;
-                extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
-            };
+            let _ = extract_archive(
+                config,
+                &archive,
+                &extract_dir,
+                manifest.extract_dir.as_ref(),
+            );
         }
     }
 
@@ -120,7 +117,7 @@ pub fn manifest_installer(
     Ok(())
 }
 
-fn dependency_install(config: &AlephConfig, dependency: &str) -> Result<(), String> {
+pub fn dependency_install(config: &AlephConfig, dependency: &str) -> Result<(), String> {
     let Some(manifest_path) = find_package(config, dependency) else {
         return Err(format!("Unable to install DEPENDENCY {dependency}"));
     };
