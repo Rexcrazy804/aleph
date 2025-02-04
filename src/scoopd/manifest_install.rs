@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     cli::subcommands::find_package,
-    manifest::{bin::normalized_executable_directores, Manifest},
+    manifest::Manifest,
     powershell::{installer::append_to_path, utilities::download_url},
     zipper::extract_archive,
     AlephConfig,
@@ -59,8 +59,10 @@ pub fn manifest_installer(
     //    return Ok(())
     //}
 
-    let downloaded_archives = manifest
-        .get_url()
+    let urls = manifest.get_url().ok_or("Failed to get url".to_string())?;
+
+    let downloaded_archives = urls
+        .clone()
         .map(
             |url| match download_url(&url, &config.paths.download, &config.paths.packages) {
                 Ok(dir) => dir,
@@ -86,7 +88,7 @@ pub fn manifest_installer(
     }
 
     if let Some(bin_attribute) = manifest.get_bin() {
-        let mut bin_paths = normalized_executable_directores(&extract_dir, bin_attribute);
+        let mut bin_paths = bin_attribute.normalized_executable_directores(&extract_dir);
         if bin_paths.is_empty() {
             let _ = append_to_path(&config.paths.home, &vec![extract_dir]);
         } else {

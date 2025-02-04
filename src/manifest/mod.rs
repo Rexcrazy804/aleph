@@ -5,7 +5,7 @@ pub mod license;
 pub mod persist;
 pub mod shortcuts;
 
-use architecture::{ArchManifest, Architecture};
+use architecture::Architecture;
 use bin::Binary;
 use installer::{Installer, Script};
 use license::License;
@@ -97,79 +97,25 @@ impl Manifest {
     /// # Panics
     /// this function can panic if no url: or Architecture.<arch>.url is found
     #[must_use]
-    pub fn get_url(&self) -> OneOrMany<String> {
-        if let Some(url) = &self.url {
-            return url.clone();
-        };
+    pub fn get_url(&self) -> Option<&OneOrMany<String>> {
+        if self.url.is_some() {
+            return self.url.as_ref();
+        }
 
-        let Some(arch) = &self.architecture else {
-            // no other places to look for url if url tag has nothing
-            // and architecture tag is empty
-            panic!("No url FOUND")
-        };
-
-        let arch = arch.clone();
-        let os_arch = std::env::consts::ARCH;
-        match os_arch {
-            "x86" => {
-                if let Some(ArchManifest { url: Some(url), .. }) = arch.x86 {
-                    return url;
-                }
-            }
-            "x86_64" => {
-                if let Some(ArchManifest { url: Some(url), .. }) = arch.x86_64 {
-                    return url;
-                }
-            }
-            "aarch64" => {
-                if let Some(ArchManifest { url: Some(url), .. }) = arch.arm64 {
-                    return url;
-                }
-            }
-            _ => {
-                panic!("Un supported architecture")
-            }
-        };
-
-        panic!("No url found");
+        let arch = self.architecture.as_ref()?;
+        let arch_manifest = arch.get_arch_manifest()?;
+        arch_manifest.url.as_ref()
     }
 
     /// a function to retreive a valid bin attribute found withing the manifest
     #[must_use]
-    pub fn get_bin(&self) -> Option<Binary> {
+    pub fn get_bin(&self) -> Option<&Binary> {
         if self.bin.is_some() {
-            return self.bin.clone();
+            return self.bin.as_ref();
         };
 
-        let Some(arch) = &self.architecture else {
-            // no other places to look for bin if bin tag has nothing
-            // and architecture tag is empty
-            return None;
-        };
-
-        let arch = arch.clone();
-        let os_arch = std::env::consts::ARCH;
-        match os_arch {
-            "x86" => {
-                if let Some(ArchManifest { bin, .. }) = arch.x86 {
-                    return bin;
-                }
-            }
-            "x86_64" => {
-                if let Some(ArchManifest { bin, .. }) = arch.x86_64 {
-                    return bin;
-                }
-            }
-            "aarch64" => {
-                if let Some(ArchManifest { bin, .. }) = arch.arm64 {
-                    return bin;
-                }
-            }
-            _ => {
-                eprintln!("Un supported architecture");
-            }
-        };
-
-        None
+        let arch = self.architecture.as_ref()?;
+        let arch_manifest = arch.get_arch_manifest()?;
+        arch_manifest.bin.as_ref()
     }
 }
