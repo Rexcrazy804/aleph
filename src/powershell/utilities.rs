@@ -67,16 +67,18 @@ pub fn download_url(
                 .expect("failed to append wget to PATH");
             return download_url(url, download_location, packages_dir);
         }
-        let Some((_url, path)) = stderr.split_once("->") else {
+
+        // Parses the exact file path
+        let Some((_url, path)) = stderr.split_once('"') else {
             println!("{stderr}");
             return Err("Failed to parse wget output".to_string());
         };
-        let Some((path, _)) = path.trim().split_once(' ') else {
+        let Some((path, _)) = path.trim().split_once('"') else {
             return Err("Failed to parse wget output".to_string());
         };
-
         // just to not cause weird inconsistencies
-        let path = path.trim_matches('"').replace('/', "\\");
+        let path = path.replace('/', "\\");
+
         println!("Succesfully Downloaded to: {path}");
         let archive = PathBuf::from_str(&path).expect("Failed to convert string to path");
         if let Some((_, new_archive_name)) = url.split_once("#/") {
