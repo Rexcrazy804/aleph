@@ -37,6 +37,24 @@ impl<T: Clone> Iterator for OneOrMany<T> {
     }
 }
 
+// TODO figure this out later
+//impl<'a, T> IntoIterator for &'a OneOrMany<T> {
+//    type Item = &'a T;
+//    type IntoIter = std::slice::Iter<'a, T>;
+//
+//    fn into_iter(self) -> Self::IntoIter {
+//        if let OneOrMany::One(lonely_data) = self {
+//            return [lonely_data].into_iter();
+//        }
+//
+//        let OneOrMany::Many(vector) = self else {
+//            unreachable!();
+//        };
+//
+//        todo!()
+//    }
+//}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
     // REQUIRED properties

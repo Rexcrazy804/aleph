@@ -37,6 +37,14 @@ pub fn extract_archive(
             extract_msi(archive, extract_directory);
         }
         "zip" => extract_zip(archive, extract_directory),
+        "exe" => {
+            // if it is an exe just copy it to the extract_directory
+            std::fs::copy(
+                archive,
+                extract_directory.join(archive.file_name().unwrap()),
+            )
+            .expect("Failed to Copy exe");
+        }
         _ => {
             panic!("Unsupported archive type: {file_type}");
         }

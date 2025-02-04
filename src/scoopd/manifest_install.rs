@@ -102,5 +102,19 @@ pub fn manifest_installer(
     }
 
     println!("\x1b[92minstalled {package_name}\x1b[0m");
+
+    // TODO: implement this: If any of the apps suggested for the feature are already installed,
+    // the feature will be treated as 'fulfilled' and the user won't see any suggestions.
+    if let Some(suggestions) = &manifest.suggest {
+        println!("The installed packages sugests installing the corresponding packages for the following features");
+        for (key, values) in suggestions {
+            print!("\x1b[92m{key}\x1b[0m : [ ");
+            for value in values.clone() {
+                print!("{value} ");
+            }
+            println!("]");
+        }
+    }
+
     Ok(())
 }
