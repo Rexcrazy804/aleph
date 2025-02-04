@@ -94,14 +94,14 @@ fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), Str
     };
 
     if archive.extension().is_some() {
-        extract_archive(&archive, &bucket_dir, None);
+        extract_archive(config, &archive, &bucket_dir, None).expect("Archive error");
     } else {
         // in the event that the provided bucket does not have a file extension, we will assume
         // that it is a zip file.
         let mut new_archive = archive.clone();
         new_archive.set_file_name("bucket.zip");
         rename(archive, &new_archive).expect("Failed to rename archive");
-        extract_archive(&new_archive, &bucket_dir, None);
+        extract_archive(config, &new_archive, &bucket_dir, None).expect("Archive Error");
     }
 
     Ok(())
