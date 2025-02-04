@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     cli::subcommands::find_package,
+    errors::extraction::ExtractError,
     manifest::Manifest,
     powershell::{installer::append_to_path, utilities::download_url},
     zipper::extract_archive,
@@ -22,15 +23,7 @@ pub fn manifest_installer(
 ) -> Result<(), String> {
     if let Some(dependencies) = &manifest.depends {
         for dependency in dependencies.clone() {
-            let Some(manifest_path) = find_package(config, &dependency) else {
-                return Err(format!("Unable to install DEPENDENCY {dependency}"));
-            };
-
-            let manifest_data =
-                std::fs::read_to_string(manifest_path).expect("Failed to read Manifest");
-            let manifest = Manifest::parse(&manifest_data).expect("Failed to parse manifest");
-            println!("\x1b[92mInstalling Dependency {dependency}\x1b[0m");
-            manifest_installer(config, &manifest, &dependency)?;
+            dependency_install(config, &dependency)?;
         }
     };
 
@@ -79,11 +72,19 @@ pub fn manifest_installer(
             } else {
                 &extract_dir.join(extract_to_path)
             };
-            extract_archive(archive, extract_dir, manifest.extract_dir.as_ref());
+            let result = extract_archive(archive, extract_dir, manifest.extract_dir.as_ref());
+            if let Err(ExtractError::SevenZNotFound) = result {
+                dependency_install(config, "7zip")?;
+                extract_archive(archive, extract_dir, manifest.extract_dir.as_ref());
+            };
         }
     } else {
         for archive in downloaded_archives {
-            extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
+            let result = extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
+            if let Err(ExtractError::SevenZNotFound) = result {
+                dependency_install(config, "7zip")?;
+                extract_archive(&archive, &extract_dir, manifest.extract_dir.as_ref());
+            };
         }
     }
 
@@ -116,5 +117,16 @@ pub fn manifest_installer(
         }
     }
 
+    Ok(())
+}
+
+fn dependency_install(config: &AlephConfig, dependency: &str) -> Result<(), String> {
+    let Some(manifest_path) = find_package(config, dependency) else {
+        return Err(format!("Unable to install DEPENDENCY {dependency}"));
+    };
+    let manifest_data = std::fs::read_to_string(manifest_path).expect("Failed to read Manifest");
+    let manifest = Manifest::parse(&manifest_data).expect("Failed to parse manifest");
+    println!("\x1b[92mInstalling Dependency {dependency}\x1b[0m");
+    manifest_installer(config, &manifest, dependency)?;
     Ok(())
 }
