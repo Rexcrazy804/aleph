@@ -78,6 +78,5 @@ pub fn append_to_path(home_dir: &Path, paths: &Vec<PathBuf>) -> std::io::Result<
     }
 
     fs::write(profile_path, modified_ps_profile)?;
-    println!("installed program to path");
     Ok(())
 }

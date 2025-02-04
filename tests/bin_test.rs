@@ -1,4 +1,5 @@
 use aleph::manifest::{bin::Binary, Manifest};
+#[allow(unused_imports)]
 use std::{fmt::Binary as FUCKOFF, fs};
 
 #[test]
@@ -59,7 +60,7 @@ fn apngasm_bin() {
                     shim[1],
                     shim.iter()
                         .skip(2)
-                        .fold(String::new(), |acc, x| acc + &x + " ")
+                        .fold(String::new(), |acc, x| acc + x + " ")
                 );
             }
         }

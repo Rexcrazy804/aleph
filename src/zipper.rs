@@ -4,7 +4,7 @@ use sevenz_rust;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::{self, Cursor};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// unzips ``file_path`` to ``extract_directory``
 /// *WARN* ``dir_to_extract`` variable does nothing right now
@@ -37,6 +37,14 @@ pub fn extract_archive(
             extract_msi(archive, extract_directory);
         }
         "zip" => extract_zip(archive, extract_directory),
+        "exe" => {
+            // if it is an exe just copy it to the extract_directory
+            std::fs::copy(
+                archive,
+                extract_directory.join(archive.file_name().unwrap()),
+            )
+            .expect("Failed to Copy exe");
+        }
         _ => {
             panic!("Unsupported archive type: {file_type}");
         }
@@ -49,8 +57,7 @@ pub fn extract_archive(
 
 fn extract_zip(archive: &Path, extract_dir: &Path) {
     let archive: Vec<u8> = std::fs::read(archive).expect("Failed to read file");
-    zip_extract::extract(Cursor::new(archive), &PathBuf::from(extract_dir), true)
-        .expect("Failed to extract");
+    zip_extract::extract(Cursor::new(archive), extract_dir, true).expect("Failed to extract");
 }
 
 fn extract_7z(archive: &Path, extract_dir: &Path) {

@@ -5,7 +5,7 @@ pub mod license;
 pub mod persist;
 pub mod shortcuts;
 
-use architecture::{ArchManifest, Architecture};
+use architecture::Architecture;
 use bin::Binary;
 use installer::{Installer, Script};
 use license::License;
@@ -36,6 +36,24 @@ impl<T: Clone> Iterator for OneOrMany<T> {
         vector.pop_front()
     }
 }
+
+// TODO figure this out later
+//impl<'a, T> IntoIterator for &'a OneOrMany<T> {
+//    type Item = &'a T;
+//    type IntoIter = std::slice::Iter<'a, T>;
+//
+//    fn into_iter(self) -> Self::IntoIter {
+//        if let OneOrMany::One(lonely_data) = self {
+//            return [lonely_data].into_iter();
+//        }
+//
+//        let OneOrMany::Many(vector) = self else {
+//            unreachable!();
+//        };
+//
+//        todo!()
+//    }
+//}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
@@ -85,6 +103,8 @@ pub struct ModuleName {
 }
 
 impl Manifest {
+    /// # Errors
+    /// - invalid json input would result in a ``serde_json::Error``.
     pub fn parse(str: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(str)
     }
@@ -95,34 +115,25 @@ impl Manifest {
     /// # Panics
     /// this function can panic if no url: or Architecture.<arch>.url is found
     #[must_use]
-    pub fn get_url(&self) -> OneOrMany<String> {
-        if let Some(url) = &self.url {
-            return url.clone();
-        };
-
-        let Some(arch) = &self.architecture else {
-            panic!("No URL FOUND")
-        };
-
-        let arch = arch.clone();
-        let os_arch = std::env::consts::ARCH;
-        if os_arch == "x86" {
-            let Some(ArchManifest { url, .. }) = arch.x86 else {
-                panic!("No URL FOUND")
-            };
-            url.unwrap()
-        } else if os_arch == "x86_64" {
-            let Some(ArchManifest { url, .. }) = arch.x86_64 else {
-                panic!("No URL FOUND")
-            };
-            url.unwrap()
-        } else if os_arch == "aarch64" {
-            let Some(ArchManifest { url, .. }) = arch.arm64 else {
-                panic!("No URL FOUND")
-            };
-            url.unwrap()
-        } else {
-            panic!("NO URL");
+    pub fn get_url(&self) -> Option<&OneOrMany<String>> {
+        if self.url.is_some() {
+            return self.url.as_ref();
         }
+
+        let arch = self.architecture.as_ref()?;
+        let arch_manifest = arch.get_arch_manifest()?;
+        arch_manifest.url.as_ref()
+    }
+
+    /// a function to retreive a valid bin attribute found withing the manifest
+    #[must_use]
+    pub fn get_bin(&self) -> Option<&Binary> {
+        if self.bin.is_some() {
+            return self.bin.as_ref();
+        };
+
+        let arch = self.architecture.as_ref()?;
+        let arch_manifest = arch.get_arch_manifest()?;
+        arch_manifest.bin.as_ref()
     }
 }

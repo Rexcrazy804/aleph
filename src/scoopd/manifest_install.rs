@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
+    cli::subcommands::find_package,
     manifest::Manifest,
     powershell::{installer::append_to_path, utilities::download_url},
     zipper::extract_archive,
@@ -12,12 +13,27 @@ use crate::{
 /// # Errors
 /// TODO: populate [document the possible erros sanoy you can do this part]
 /// # Panics
+/// Failing to read or parse dependencies
 /// TODO: populate [document the panic sanoy you can do this too]
 pub fn manifest_installer(
     config: &AlephConfig,
     manifest: &Manifest,
     package_name: &str,
 ) -> Result<(), String> {
+    if let Some(dependencies) = &manifest.depends {
+        for dependency in dependencies.clone() {
+            let Some(manifest_path) = find_package(config, &dependency) else {
+                return Err(format!("Unable to install DEPENDENCY {dependency}"));
+            };
+
+            let manifest_data =
+                std::fs::read_to_string(manifest_path).expect("Failed to read Manifest");
+            let manifest = Manifest::parse(&manifest_data).expect("Failed to parse manifest");
+            println!("\x1b[92mInstalling Dependency {dependency}\x1b[0m");
+            manifest_installer(config, &manifest, &dependency)?;
+        }
+    };
+
     // NOTE: if two buckets have packages with the same package name WE MUST force the user to
     // declare which bucket the package is to be downloaded from. The user may declare the package
     // to be installed from both buckets in which case we will need to set package name as
@@ -43,8 +59,10 @@ pub fn manifest_installer(
     //    return Ok(())
     //}
 
-    let downloaded_archives = manifest
-        .get_url()
+    let urls = manifest.get_url().ok_or("Failed to get url".to_string())?;
+
+    let downloaded_archives = urls
+        .clone()
         .map(
             |url| match download_url(&url, &config.paths.download, &config.paths.packages) {
                 Ok(dir) => dir,
@@ -69,82 +87,34 @@ pub fn manifest_installer(
         }
     }
 
-    // NOTE for the time being we'll be using this
-    // We will need to go through the contents of the bin attribute to determine the nested
-    // folders that need to be symlinked
-    let _ = append_to_path(&config.paths.home, &vec![extract_dir]);
+    if let Some(bin_attribute) = manifest.get_bin() {
+        let mut bin_paths = bin_attribute.normalized_executable_directores(&extract_dir);
+        if bin_paths.is_empty() {
+            let _ = append_to_path(&config.paths.home, &vec![extract_dir]);
+        } else {
+            bin_paths.sort();
+            bin_paths.dedup();
+
+            let _ = append_to_path(&config.paths.home, &bin_paths);
+        }
+    } else {
+        let _ = append_to_path(&config.paths.home, &vec![extract_dir]);
+    }
+
+    println!("\x1b[92minstalled {package_name}\x1b[0m");
+
+    // TODO: implement this: If any of the apps suggested for the feature are already installed,
+    // the feature will be treated as 'fulfilled' and the user won't see any suggestions.
+    if let Some(suggestions) = &manifest.suggest {
+        println!("The installed packages sugests installing the corresponding packages for the following features");
+        for (key, values) in suggestions {
+            print!("\x1b[92m{key}\x1b[0m : [ ");
+            for value in values.clone() {
+                print!("{value} ");
+            }
+            println!("]");
+        }
+    }
 
     Ok(())
 }
-
-// // // // // // // RIP TO MAKING SIMLINKS :D THEY DO NOT WORK UNDER WINE // // // // // // //
-//// the current directory here is the Aleph/Current that will be holding all the symlinks to
-//// active packages' executables thus we only need to link this to Path
-//// extracting this into a variable so that it can be used later to include Aleph/Current into
-//// powershell path
-//let current_dir = root_path.join("Current");
-//create_dir(current_dir).expect("Failed to create Aleph/Current/");
-//// TODO: add current_dir to path (copy the append to path function pretty much);
-//
-//// symlink $HOME/Aleph to $HOME/Documents/.Aleph so that linux users can easily access
-//// aleph root directory (as wine symlinks ~/Documents to $HOME/Documents where $HOME is the
-//// wine prefix drive C's user home directory)
-//let symlink_path = symlink_path.join(".Aleph");
-//dbg!(&symlink_path); // // // // // // // // // // // // // // // // // // // // // // // //
-
-// UHH work on this crap later
-//fn get_executables(search_dir: &str, bin_attr: Binary) -> Result<Vec<String>, String> {
-//    let mut binary_paths: Vec<String> = Vec::new();
-//
-//    if let Binary::Executable(exe) = &bin_attr {
-//        binary_paths.append(&mut find_binaries(search_dir, &[exe.to_string()]));
-//    };
-//
-//    if let Binary::Executables(exes) = &bin_attr {
-//        binary_paths.append(&mut find_binaries(search_dir, exes));
-//    };
-//
-//    if let Binary::AliasedExecutables(aliased_exes) = &bin_attr {
-//        for alias_or_exe in aliased_exes {
-//            if let Binary::Executable(exe) = &alias_or_exe {
-//                binary_paths.append(&mut find_binaries(search_dir, &[exe.to_string()]));
-//            };
-//
-//            // now here comes the hard part :')
-//            #[allow(unused_variables)]
-//            if let Binary::Executables(aliases) = alias_or_exe {
-//                // WARN TODO
-//                // for the the time being we  will do nothing; plan is to create a function that
-//                // can handle this that will hopefully create a new aliased executable into the
-//                // ${search_directory} which will work as aliases are intended to work i.e being a
-//                // plain alias to a direct exe call OR calling the exe with specified parametres
-//            };
-//        }
-//    };
-//    Ok(binary_paths)
-//}
-
-// returns the full path of each binary listed in the bin attribute of the manifest
-//fn find_binaries(search_dir: &str, binaries: &[String]) -> Vec<String> {
-//    // my question is whether we should directly add the binary itself to the PATH variable or whether we
-//    // just need to include the parent directory?
-//    // lets find out I suppose
-//    // I found out and I am not happy with the result
-//    let mut path_to_binary_parent_dirs: Vec<String> = Vec::new();
-//    path_to_binary_parent_dirs.push(search_dir.to_string());
-//
-//    for binary in binaries {
-//        let parrent_dir = binary.split('\\').rev().skip(1).collect::<String>();
-//        if parrent_dir.is_empty() {
-//            continue;
-//        }
-//
-//        let full_path_to_parent = format!("{search_dir}\\{parrent_dir}");
-//        path_to_binary_parent_dirs.push(full_path_to_parent);
-//
-//    }
-//
-//    path_to_binary_parent_dirs.sort();
-//    path_to_binary_parent_dirs.dedup();
-//    path_to_binary_parent_dirs
-//}

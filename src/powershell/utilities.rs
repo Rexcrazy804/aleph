@@ -79,6 +79,14 @@ pub fn download_url(
         let path = path.trim_matches('"').replace('/', "\\");
         println!("Succesfully Downloaded to: {path}");
         let archive = PathBuf::from_str(&path).expect("Failed to convert string to path");
+        if let Some((_, new_archive_name)) = url.split_once("#/") {
+            let new_archive_name = new_archive_name.trim();
+            let mut new_archive = archive.clone();
+            new_archive.set_file_name(new_archive_name);
+
+            std::fs::rename(&archive, &new_archive).expect("Failed to rename archive");
+            return Ok(new_archive);
+        }
         return Ok(archive);
     }
 

@@ -11,6 +11,19 @@ pub struct Architecture {
     pub arm64: Option<ArchManifest>,
 }
 
+impl Architecture {
+    #[must_use]
+    pub fn get_arch_manifest(&self) -> Option<&ArchManifest> {
+        let os_arch = std::env::consts::ARCH;
+        match os_arch {
+            "x86" => self.x86.as_ref(),
+            "x86_64" => self.x86_64.as_ref(),
+            "a&self64" => self.arm64.as_ref(),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct ArchManifest {
     pub bin: Option<Binary>,

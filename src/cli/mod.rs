@@ -1,4 +1,4 @@
-mod subcommands;
+pub mod subcommands;
 use subcommands::SubCommand;
 
 use crate::AlephConfig;
