@@ -35,11 +35,13 @@ pub fn extract_archive(
         "7z" | "zip" | "lzma" | "gz" | "lzh" | "rar" | "tar" | "zst" | "xz" | "001" => {
             if let Err(err) = extract_7z(archive, extract_directory) {
                 if let ExtractError::SevenZNotFound = err {
-                    dependency_install(config, "7zip");
-                    extract_archive(config, archive, extract_directory, dir_to_extract)?
-                } else {
-                    return Err(err);
+                    let Ok(()) = dependency_install(config, "7zip") else {
+                        return Err(ExtractError::FailedToInstall7zip);
+                    };
+                    return extract_archive(config, archive, extract_directory, dir_to_extract);
                 }
+
+                return Err(err);
             }
         }
         "msi" => {
@@ -53,7 +55,7 @@ pub fn extract_archive(
                 extract_directory.join(archive.file_name().ok_or(ExtractError::NoFileNameError)?),
             )?;
         }
-        _ => return Err(ExtractError::UnsupportedArchive),
+        _ => return Err(ExtractError::UnsupportedArchive(file_type.to_string())),
     };
 
     println!("Extracted archive successfully");

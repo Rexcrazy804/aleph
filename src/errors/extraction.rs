@@ -1,10 +1,12 @@
 use std::{io, string};
 
+#[derive(Debug)]
 pub enum ExtractError {
     NoFileExtensionError,
     FailedToExtract,
     SevenZNotFound,
-    UnsupportedArchive,
+    FailedToInstall7zip,
+    UnsupportedArchive(String),
     IOerror(io::Error),
 
     // HIGHLY UNLIKELY

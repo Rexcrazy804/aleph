@@ -72,16 +72,22 @@ pub fn manifest_installer(
             } else {
                 &extract_dir.join(extract_to_path)
             };
-            let _ = extract_archive(config, archive, extract_dir, manifest.extract_dir.as_ref());
+            if let Err(e) =
+                extract_archive(config, archive, extract_dir, manifest.extract_dir.as_ref())
+            {
+                return Err(format!("Unable to Extract Archive: {e:?}"));
+            };
         }
     } else {
         for archive in downloaded_archives {
-            let _ = extract_archive(
+            if let Err(e) = extract_archive(
                 config,
                 &archive,
                 &extract_dir,
                 manifest.extract_dir.as_ref(),
-            );
+            ) {
+                return Err(format!("Unable to Extract Archive: {e:?}"));
+            };
         }
     }
 
@@ -119,7 +125,15 @@ pub fn manifest_installer(
 
 pub fn dependency_install(config: &AlephConfig, dependency: &str) -> Result<(), String> {
     let Some(manifest_path) = find_package(config, dependency) else {
-        return Err(format!("Unable to install DEPENDENCY {dependency}"));
+        if dependency != "7zip" {
+            return Err(format!("Unable to install DEPENDENCY {dependency}"));
+        }
+
+        let manifest_data = SEVENZIP_MANIFEST;
+        let manifest = Manifest::parse(manifest_data).expect("Failed to parse manifest");
+        println!("\x1b[92mInstalling Dependency {dependency}\x1b[0m");
+        manifest_installer(config, &manifest, dependency)?;
+        return Ok(());
     };
     let manifest_data = std::fs::read_to_string(manifest_path).expect("Failed to read Manifest");
     let manifest = Manifest::parse(&manifest_data).expect("Failed to parse manifest");
@@ -127,3 +141,77 @@ pub fn dependency_install(config: &AlephConfig, dependency: &str) -> Result<(), 
     manifest_installer(config, &manifest, dependency)?;
     Ok(())
 }
+
+// ugly workaround will think of something later
+const SEVENZIP_MANIFEST: &str = r#"{
+    "version": "24.09",
+    "description": "A multi-format file archiver with high compression ratios",
+    "homepage": "https://www.7-zip.org/",
+    "license": "LGPL-2.1-or-later",
+    "notes": "Add 7-Zip as a context menu option by running: \"$dir\\install-context.reg\"",
+    "architecture": {
+        "64bit": {
+            "url": "https://www.7-zip.org/a/7z2409-x64.msi",
+            "hash": "ec6af1ea0367d16dde6639a89a080a524cebc4d4bedfe00ed0cac4b865a918d8",
+            "extract_dir": "Files\\7-Zip"
+        },
+        "32bit": {
+            "url": "https://www.7-zip.org/a/7z2409.msi",
+            "hash": "c7f182dad21eebfce02f141d6a01f847d1e194c4d6aa29998d9305388553cf6a",
+            "extract_dir": "Files\\7-Zip"
+        },
+        "arm64": {
+            "url": "https://www.7-zip.org/a/7z2409-arm64.exe",
+            "hash": "bc7b3a18f218f4916e1c4996751468f96e46eb7e97e91e8c1553d74793037f1a",
+            "pre_install": [
+                "$7zr = Join-Path $env:TMP '7zr.exe'",
+                "Invoke-WebRequest https://www.7-zip.org/a/7zr.exe -OutFile $7zr",
+                "Invoke-ExternalCommand $7zr @('x', \"$dir\\$fname\", \"-o$dir\", '-y') | Out-Null",
+                "Remove-Item \"$dir\\Uninstall.exe\", \"$dir\\*-arm64.exe\", $7zr"
+            ]
+        }
+    },
+    "post_install": [
+        "$7zip_root = \"$dir\".Replace('\\', '\\\\')",
+        "'install-context.reg', 'uninstall-context.reg' | ForEach-Object {",
+        "    $content = Get-Content \"$bucketsdir\\main\\scripts\\7-zip\\$_\"",
+        "    $content = $content.Replace('$7zip_root', $7zip_root)",
+        "    if ($global) {",
+        "       $content = $content.Replace('HKEY_CURRENT_USER', 'HKEY_LOCAL_MACHINE')",
+        "    }",
+        "    Set-Content \"$dir\\$_\" $content -Encoding Ascii",
+        "}"
+    ],
+    "bin": [
+        "7z.exe",
+        "7zFM.exe",
+        "7zG.exe"
+    ],
+    "shortcuts": [
+        [
+            "7zFM.exe",
+            "7-Zip"
+        ]
+    ],
+    "persist": [
+        "Codecs",
+        "Formats"
+    ],
+    "checkver": {
+        "url": "https://www.7-zip.org/download.html",
+        "regex": "Download 7-Zip ([\\d.]+) \\(\\d{4}-\\d{2}-\\d{2}\\)"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://www.7-zip.org/a/7z$cleanVersion-x64.msi"
+            },
+            "32bit": {
+                "url": "https://www.7-zip.org/a/7z$cleanVersion.msi"
+            },
+            "arm64": {
+                "url": "https://www.7-zip.org/a/7z$cleanVersion-arm64.exe"
+            }
+        }
+    }
+}"#;
