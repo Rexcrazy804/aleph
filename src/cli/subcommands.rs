@@ -1,10 +1,6 @@
-use crate::scoopd::manifest_uninstall;
 use crate::AlephConfig;
 use crate::{manifest::Manifest, scoopd::manifest_uninstall::remove_package_dir};
-use std::{
-    fmt::Arguments,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 pub enum SubCommand {
     // help is a special subcommand for the --help flag

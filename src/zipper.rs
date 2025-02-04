@@ -4,7 +4,7 @@ use sevenz_rust;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::{self, Cursor};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// unzips ``file_path`` to ``extract_directory``
 /// *WARN* ``dir_to_extract`` variable does nothing right now
