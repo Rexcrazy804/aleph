@@ -40,14 +40,14 @@ pub fn manifest_installer(
     }
 
     let package_version = &manifest.version;
-    let extract_dir = config
+    let package_dir = config
         .paths
         .packages
         .join(package_name)
         .join(package_version);
 
     // TODO (sanoy) check if program exists in path as well before exiting
-    // if let Ok(true) = extract_dir.try_exists() {
+    // if let Ok(true) = package_dir.try_exists() {
     //    println!("Program {package_name} version {package_version} has already been installed");
     //    return Ok(())
     //}
@@ -64,37 +64,38 @@ pub fn manifest_installer(
         )
         .collect::<Vec<PathBuf>>();
 
+    let extract_dirs = manifest.get_extract_dir();
+    let extract_to_paths = manifest.extract_to;
+
+    for (archive, (extract_to, extract_dir)) in downloaded_archives
+        .iter()
+        .zip(extract_to_paths.iter().zip(extract_dirs.iter()))
+    {}
+
     if let Some(extract_to_paths) = manifest.extract_to.as_ref() {
         for (archive, extract_to_path) in downloaded_archives.iter().zip(extract_to_paths.clone()) {
             let dont_change_path = extract_to_path.is_empty() || extract_to_path == ".";
-            let extract_dir = if dont_change_path {
-                &extract_dir
+            let package_dir = if dont_change_path {
+                &package_dir
             } else {
-                &extract_dir.join(extract_to_path)
+                &package_dir.join(extract_to_path)
             };
-            if let Err(e) =
-                extract_archive(config, archive, extract_dir, manifest.extract_dir.as_ref())
-            {
+            if let Err(e) = extract_archive(config, archive, package_dir, extract_dirs) {
                 return Err(format!("Unable to Extract Archive: {e:?}"));
             };
         }
     } else {
         for archive in downloaded_archives {
-            if let Err(e) = extract_archive(
-                config,
-                &archive,
-                &extract_dir,
-                manifest.extract_dir.as_ref(),
-            ) {
+            if let Err(e) = extract_archive(config, &archive, &package_dir, extract_dirs) {
                 return Err(format!("Unable to Extract Archive: {e:?}"));
             };
         }
     }
 
     if let Some(bin_attribute) = manifest.get_bin() {
-        let mut bin_paths = bin_attribute.normalized_executable_directores(&extract_dir);
+        let mut bin_paths = bin_attribute.normalized_executable_directores(&package_dir);
         if bin_paths.is_empty() {
-            let _ = append_to_path(&config.paths.home, &vec![extract_dir]);
+            let _ = append_to_path(&config.paths.home, &vec![package_dir]);
         } else {
             bin_paths.sort();
             bin_paths.dedup();
@@ -102,7 +103,7 @@ pub fn manifest_installer(
             let _ = append_to_path(&config.paths.home, &bin_paths);
         }
     } else {
-        let _ = append_to_path(&config.paths.home, &vec![extract_dir]);
+        let _ = append_to_path(&config.paths.home, &vec![package_dir]);
     }
 
     println!("\x1b[92minstalled {package_name}\x1b[0m");

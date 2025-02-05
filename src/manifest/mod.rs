@@ -136,4 +136,14 @@ impl Manifest {
         let arch_manifest = arch.get_arch_manifest()?;
         arch_manifest.bin.as_ref()
     }
+
+    pub fn get_extract_dir(&self) -> Option<&OneOrMany<String>> {
+        if self.extract_dir.is_some() {
+            return self.extract_dir.as_ref();
+        };
+
+        let arch = self.architecture.as_ref()?;
+        let arch_manifest = arch.get_arch_manifest()?;
+        arch_manifest.extract_dir.as_ref()
+    }
 }
