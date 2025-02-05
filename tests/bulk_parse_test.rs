@@ -2,7 +2,6 @@ use aleph::{manifest::Manifest, AlephConfig};
 use std::fs;
 
 #[test]
-#[ignore] // we don't want this test to run by default [its expensive kinda .w.]
 fn bulk_parse() {
     // hardcoding this to point to the main scoop bucket so that I can actually parse EVERYTHING
 
@@ -35,5 +34,5 @@ fn bulk_parse() {
         //}
     }
 
-    println!("parsed {file_count} files")
+    println!("parsed {file_count} files");
 }

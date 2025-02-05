@@ -73,7 +73,9 @@ fn extract_7z(
     use std::process::Command;
 
     let extract_dir = if let Some(extract_dir) = extract_dir {
-        format!("-ir!{extract_dir}\\*")
+        // idk why but scoop uses -ir!{extract_dir}\* but that doesn't seem to be working for me
+        // .w.
+        format!("{extract_dir}\\*")
     } else {
         String::new()
     };
@@ -91,21 +93,20 @@ fn extract_7z(
                     .ok_or(ExtractError::OsStrConversionError)?
             ),
             //"-xr!.nisis", figure this out
-            &extract_dir,
             "-y",
+            &extract_dir,
         ])
         .output()?;
 
     //let stdout = String::from_utf8(output.stdout)?;
     let stderr = String::from_utf8(output.stderr)?;
 
-    // println!("STDOUT: {stdout}");
+    //println!("STDOUT: {stdout}");
     //println!("STDERR: {stderr}");
 
     if stderr.contains("The term '7z' is not recognized") {
         return Err(ExtractError::SevenZNotFound);
     }
-
     Ok(())
 }
 

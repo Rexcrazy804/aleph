@@ -65,7 +65,7 @@ fn colorize_print_description(color: &str, command: &str, description: &str, tab
     println!("\x1b[{color}m{command}\x1b[0m{tabs}- {description}");
 }
 
-fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), String> {
+pub fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), String> {
     use crate::powershell::utilities::download_url;
     use crate::zipper::extract_archive;
     use std::fs::{create_dir, rename};
