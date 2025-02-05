@@ -7,7 +7,7 @@ use std::io;
 use std::path::Path;
 
 /// unzips ``file_path`` to ``package_dir``
-/// *WARN* ``dir_to_extract`` variable does nothing right now
+/// if ``extract_dir`` is provided, then only that directory is extracted out of the ``archive``
 /// # Errors
 /// - most important error being failure to find 7zip in path
 /// - rest are well described in the ``ExtractError`` definition
@@ -15,7 +15,7 @@ pub fn extract_archive(
     config: &AlephConfig,
     archive: &Path,
     package_dir: &Path,
-    extract_dir: Option<&String>,
+    extract_dir: Option<&str>,
 ) -> Result<(), ExtractError> {
     // I am certain we can skip the make dirname step by reading and tracking the name of the .json
     // file and then modify the function to extract directly to package_dir instead of making
@@ -68,12 +68,15 @@ pub fn extract_archive(
 fn extract_7z(
     archive: &Path,
     package_dir: &Path,
-    extract_dir: Option<&String>,
+    extract_dir: Option<&str>,
 ) -> Result<(), ExtractError> {
     use std::process::Command;
 
-    let default = String::new();
-    let extract_dir = extract_dir.unwrap_or(&default);
+    let extract_dir = if let Some(extract_dir) = extract_dir {
+        format!("-ir!{extract_dir}\\*")
+    } else {
+        String::new()
+    };
 
     let output = Command::new("pwsh")
         .args([
@@ -87,7 +90,7 @@ fn extract_7z(
                     .to_str()
                     .ok_or(ExtractError::OsStrConversionError)?
             ),
-            extract_dir,
+            &extract_dir,
             "-y",
         ])
         .output()?;
@@ -145,14 +148,18 @@ pub fn extract_msi(archive: &Path, package_dir: &Path) -> Result<(), ExtractErro
 /// this function repeats the above process recursively till the directory has more than only a
 /// single entry [folder or file name]
 /// ``dir_to_extract`` comes from ``Manifest.package_dir`` and is not used as of now
-fn strip_directory(package_dir: &Path) -> io::Result<()> {
+fn strip_directory(package_dir: &Path) -> Result<(), ExtractError> {
     use fs::read_dir;
 
     if read_dir(package_dir)?.count() > 1 {
         return Ok(());
     }
 
-    let lonely_entry = read_dir(package_dir)?.last().unwrap()?;
+    let Some(lonely_entry) = read_dir(package_dir)?.last() else {
+        return Err(ExtractError::FailedToExtract);
+    };
+
+    let lonely_entry = lonely_entry?;
 
     if lonely_entry.path().is_file() {
         return Ok(());

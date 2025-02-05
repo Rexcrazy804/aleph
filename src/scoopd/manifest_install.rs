@@ -3,12 +3,19 @@ use std::path::PathBuf;
 use crate::{
     cli::subcommands::find_package,
     errors::extraction::ExtractError,
-    manifest::Manifest,
+    manifest::{Manifest, OneOrMany},
     powershell::{installer::append_to_path, utilities::download_url},
     zipper::extract_archive,
     AlephConfig,
 };
 
+// NOTE: if two buckets have packages with the same package name WE MUST force the user to
+// declare which bucket the package is to be downloaded from. The user may declare the package
+// to be installed from both buckets in which case we will need to set package name as
+// package_name = <bucket-name>-<Package-name>
+// TODO: implement above funtionality.
+// Files will be installed to ROOT_DIR/Packages/<Package-name>/<Package_version>/
+//
 // TODO Replace error return type to a concrete enum that can account for the different errors
 // no sanoy this is not for you
 /// # Errors
@@ -21,24 +28,6 @@ pub fn manifest_installer(
     manifest: &Manifest,
     package_name: &str,
 ) -> Result<(), String> {
-    if let Some(dependencies) = &manifest.depends {
-        for dependency in dependencies.clone() {
-            dependency_install(config, &dependency)?;
-        }
-    };
-
-    // NOTE: if two buckets have packages with the same package name WE MUST force the user to
-    // declare which bucket the package is to be downloaded from. The user may declare the package
-    // to be installed from both buckets in which case we will need to set package name as
-    // package_name = <bucket-name>-<Package-name>
-    // TODO: implement above funtionality.
-    // Files will be installed to ROOT_DIR/Packages/<Package-name>/<Package_version>/
-    if let Some(notes) = manifest.notes.as_ref() {
-        for note in notes.clone() {
-            println!("\x1b[92m{note}\x1b[0m");
-        }
-    }
-
     let package_version = &manifest.version;
     let package_dir = config
         .paths
@@ -52,8 +41,16 @@ pub fn manifest_installer(
     //    return Ok(())
     //}
 
-    let urls = manifest.get_url().ok_or("Failed to get url".to_string())?;
+    resolve_dependencies(config, manifest)?;
 
+    if let Some(notes) = manifest.notes.as_ref() {
+        for note in notes.clone() {
+            println!("\x1b[92m{note}\x1b[0m");
+        }
+    }
+
+    // parse the urls and download the respective archives
+    let urls = manifest.get_url().ok_or("Failed to get url".to_string())?;
     let downloaded_archives = urls
         .clone()
         .map(
@@ -64,33 +61,20 @@ pub fn manifest_installer(
         )
         .collect::<Vec<PathBuf>>();
 
+    // extract_dirs are the specific directories that needs to be extracted out of the archive
     let extract_dirs = manifest.get_extract_dir();
-    let extract_to_paths = manifest.extract_to;
+    // extrat to paths are the paths relative to `package_dir` where the archive would be extracted
+    let extract_to_paths = manifest.extract_to.as_ref();
 
-    for (archive, (extract_to, extract_dir)) in downloaded_archives
-        .iter()
-        .zip(extract_to_paths.iter().zip(extract_dirs.iter()))
-    {}
-
-    if let Some(extract_to_paths) = manifest.extract_to.as_ref() {
-        for (archive, extract_to_path) in downloaded_archives.iter().zip(extract_to_paths.clone()) {
-            let dont_change_path = extract_to_path.is_empty() || extract_to_path == ".";
-            let package_dir = if dont_change_path {
-                &package_dir
-            } else {
-                &package_dir.join(extract_to_path)
-            };
-            if let Err(e) = extract_archive(config, archive, package_dir, extract_dirs) {
-                return Err(format!("Unable to Extract Archive: {e:?}"));
-            };
-        }
-    } else {
-        for archive in downloaded_archives {
-            if let Err(e) = extract_archive(config, &archive, &package_dir, extract_dirs) {
-                return Err(format!("Unable to Extract Archive: {e:?}"));
-            };
-        }
-    }
+    if let Err(e) = archive_extraction_helper(
+        config,
+        &package_dir,
+        &downloaded_archives,
+        extract_dirs,
+        extract_to_paths,
+    ) {
+        return Err(format!("Failed to Extract Archive {e:?}"));
+    };
 
     if let Some(bin_attribute) = manifest.get_bin() {
         let mut bin_paths = bin_attribute.normalized_executable_directores(&package_dir);
@@ -110,6 +94,21 @@ pub fn manifest_installer(
 
     // TODO: implement this: If any of the apps suggested for the feature are already installed,
     // the feature will be treated as 'fulfilled' and the user won't see any suggestions.
+    display_suggestions(manifest);
+
+    Ok(())
+}
+
+fn resolve_dependencies(config: &AlephConfig, manifest: &Manifest) -> Result<(), String> {
+    if let Some(dependencies) = &manifest.depends {
+        for dependency in dependencies.clone() {
+            dependency_install(config, &dependency)?;
+        }
+    };
+    Ok(())
+}
+
+fn display_suggestions(manifest: &Manifest) {
     if let Some(suggestions) = &manifest.suggest {
         println!("The installed packages sugests installing the corresponding packages for the following features");
         for (key, values) in suggestions {
@@ -119,6 +118,70 @@ pub fn manifest_installer(
             }
             println!("]");
         }
+    }
+}
+
+fn archive_extraction_helper(
+    config: &AlephConfig,
+    package_dir: &PathBuf,
+    archives: &[PathBuf],
+    extract_dir: Option<&OneOrMany<String>>,
+    extract_to_path: Option<&OneOrMany<String>>,
+) -> Result<(), ExtractError> {
+    if archives.len() == 1 {
+        let archive = &archives[0];
+        let package_dir = if let Some(OneOrMany::One(ref extract_to_path)) = extract_to_path {
+            &package_dir.join(extract_to_path)
+        } else {
+            package_dir
+        };
+
+        let extract_dir: Option<&str> = if let Some(OneOrMany::One(ref extract_dir)) = extract_dir {
+            Some(extract_dir)
+        } else {
+            None
+        };
+
+        extract_archive(config, archive, package_dir, extract_dir)?;
+        return Ok(());
+    }
+
+    let extract_dirs: Vec<Option<&String>> =
+        if let Some(OneOrMany::Many(ref extract_dir)) = extract_dir {
+            extract_dir
+                .iter()
+                .map(Some)
+                .collect::<Vec<Option<&String>>>()
+        } else {
+            vec![None; archives.len()]
+        };
+
+    let extract_to_paths: Vec<Option<&String>> =
+        if let Some(OneOrMany::Many(ref extract_to_path)) = extract_to_path {
+            extract_to_path
+                .iter()
+                .map(Some)
+                .collect::<Vec<Option<&String>>>()
+        } else {
+            vec![None; archives.len()]
+        };
+
+    for (archive, (extract_dir, extract_to_path)) in archives
+        .iter()
+        .zip(extract_dirs.iter().zip(extract_to_paths.iter()))
+    {
+        let package_dir = if let Some(extract_to_path) = extract_to_path {
+            &package_dir.join(extract_to_path)
+        } else {
+            package_dir
+        };
+
+        extract_archive(
+            config,
+            archive,
+            package_dir,
+            extract_dir.map(String::as_str),
+        )?;
     }
 
     Ok(())
