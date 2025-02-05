@@ -90,6 +90,7 @@ fn extract_7z(
                     .to_str()
                     .ok_or(ExtractError::OsStrConversionError)?
             ),
+            //"-xr!.nisis", figure this out
             &extract_dir,
             "-y",
         ])
