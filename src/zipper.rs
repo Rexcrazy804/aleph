@@ -32,7 +32,7 @@ pub fn extract_archive(
     println!("Created package directory");
 
     match file_type {
-        "7z" | "zip" | "lzma" | "gz" | "lzh" | "rar" | "tar" | "zst" | "xz" | "001" => {
+        "7z" | "zip" | "lzma" | "gz" | "lzh" | "rar" | "tar" | "zst" | "xz" | "001" | "nupkg" => {
             if let Err(err) = extract_7z(archive, extract_directory) {
                 if let ExtractError::SevenZNotFound = err {
                     let Ok(()) = dependency_install(config, "7zip") else {
