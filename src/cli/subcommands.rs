@@ -1,5 +1,5 @@
 use crate::AlephConfig;
-use crate::{manifest::Manifest, scoopd::manifest_uninstall::remove_package_dir};
+use crate::{manifest::Manifest, scoopd::manifest_uninstall::manifest_uninstaller};
 use std::path::{Path, PathBuf};
 
 pub enum SubCommand {
@@ -139,23 +139,20 @@ pub fn uninstall_package(config: &AlephConfig, arg: Option<&String>) -> Result<(
     let arg = arg.ok_or("Package name required for uninstall.".to_string())?;
 
     // Split the argument string into individual package names.
-    for pkg in arg.split_whitespace().map(|s| s.trim()) {
+    for pkg in arg.split_whitespace().map(str::trim) {
         // Compute the expected package directory: $HOME\Aleph\Packages\<pkg>
         let package_path: PathBuf = config.paths.packages.join(pkg);
         if !package_path.exists() {
-            println!("Package '{}' not found at {:?}", pkg, package_path);
+            println!("Package '{pkg}' not found at {package_path:?}");
             continue; // Skip this package if the directory does not exist.
         }
-        println!(
-            "Found package '{}' at {:?}. Proceeding with uninstall...",
-            pkg, package_path
-        );
+        println!("Found package '{pkg}' at {package_path:?}. Proceeding with uninstall...");
 
         // Call the manifest uninstallation logic.
         // We assume that in your manifest_uninstall.rs you have a function like:
         // `pub fn uninstall_repo_manifest(config: &AlephConfig, arg: Option<&String>) -> Result<(), String>`
         // which handles deleting the files for a given package.
-        remove_package_dir(config, Some(&pkg.to_string()))?;
+        manifest_uninstaller(config, pkg)?;
     }
     Ok(())
 }
