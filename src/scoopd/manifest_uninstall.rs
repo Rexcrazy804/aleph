@@ -1,7 +1,7 @@
 use crate::{powershell::uninstaller::remove_from_profile, AlephConfig};
 use std::fs;
 
-pub fn remove_package_dir(config: &AlephConfig, package_name: &str) -> Result<(), String> {
+pub fn manifest_uninstaller(config: &AlephConfig, package_name: &str) -> Result<(), String> {
     let package_path = config.paths.packages.join(package_name);
     if let Ok(false) = package_path.try_exists() {
         return Err(format!("Package '{package_name}' not found"));

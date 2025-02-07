@@ -1,5 +1,5 @@
 use crate::AlephConfig;
-use crate::{manifest::Manifest, scoopd::manifest_uninstall::remove_package_dir};
+use crate::{manifest::Manifest, scoopd::manifest_uninstall::manifest_uninstaller};
 use std::path::{Path, PathBuf};
 
 pub enum SubCommand {
@@ -152,7 +152,7 @@ pub fn uninstall_package(config: &AlephConfig, arg: Option<&String>) -> Result<(
         // We assume that in your manifest_uninstall.rs you have a function like:
         // `pub fn uninstall_repo_manifest(config: &AlephConfig, arg: Option<&String>) -> Result<(), String>`
         // which handles deleting the files for a given package.
-        remove_package_dir(config, pkg)?;
+        manifest_uninstaller(config, pkg)?;
     }
     Ok(())
 }
