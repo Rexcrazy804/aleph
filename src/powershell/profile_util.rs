@@ -3,7 +3,7 @@ use std::fs::{self, create_dir};
 use std::path::{Path, PathBuf};
 
 // uninstaller
-pub fn remove_from_profile(config: &AlephConfig, package_name: &str) -> Result<(), String> {
+pub fn remove_from_path(config: &AlephConfig, package_name: &str) -> Result<(), String> {
     let profile_path = config
         .paths
         .home

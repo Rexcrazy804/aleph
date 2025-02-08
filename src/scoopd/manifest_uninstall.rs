@@ -1,4 +1,4 @@
-use crate::{powershell::profile_util::remove_from_profile, AlephConfig};
+use crate::{powershell::profile_util::remove_from_path, AlephConfig};
 use std::fs;
 
 pub fn manifest_uninstaller(config: &AlephConfig, package_name: &str) -> Result<(), String> {
@@ -7,7 +7,7 @@ pub fn manifest_uninstaller(config: &AlephConfig, package_name: &str) -> Result<
         return Err(format!("Package '{package_name}' not found"));
     }
 
-    remove_from_profile(config, package_name)?;
+    remove_from_path(config, package_name)?;
 
     fs::remove_dir_all(&package_path)
         .map_err(|e| format!("Failed to remove package directory: {e}"))?;
