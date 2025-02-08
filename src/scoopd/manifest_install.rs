@@ -4,7 +4,10 @@ use crate::{
     cli::subcommands::find_package,
     errors::extraction::ExtractError,
     manifest::{Manifest, OneOrMany},
-    powershell::{profile_util::append_to_path, utilities::download_url},
+    powershell::{
+        profile_util::{append_env_vars, append_to_path},
+        utilities::download_url,
+    },
     zipper::extract_archive,
     AlephConfig,
 };
@@ -111,6 +114,11 @@ pub fn manifest_installer(
     if let (None, None) = (&manifest.env_add_path, &manifest.bin) {
         append_to_path(&config.paths.home, &vec![package_dir.clone()])
             .expect("failed to add to path");
+    }
+
+    if let Some(ref env_vars_map) = manifest.env_set {
+        append_env_vars(&config.paths.home, env_vars_map, &package_dir)
+            .expect("Failed to append env vars");
     }
 
     println!("\x1b[92minstalled {package_name}\x1b[0m");
