@@ -79,15 +79,38 @@ pub fn manifest_installer(
     if let Some(bin_attribute) = manifest.get_bin() {
         let mut bin_paths = bin_attribute.normalized_executable_directores(&package_dir);
         if bin_paths.is_empty() {
-            let _ = append_to_path(&config.paths.home, &vec![package_dir]);
+            append_to_path(&config.paths.home, &vec![package_dir.clone()])
+                .expect("Failed to add to path");
         } else {
             bin_paths.sort();
             bin_paths.dedup();
 
-            let _ = append_to_path(&config.paths.home, &bin_paths);
+            append_to_path(&config.paths.home, &bin_paths).expect("Failed to add to path");
         }
-    } else {
-        let _ = append_to_path(&config.paths.home, &vec![package_dir]);
+    }
+
+    // I would have liked to have handled this alongside bin_attr but ig not
+    if let Some(env_add_paths) = &manifest.env_add_path {
+        let env_add_paths = env_add_paths
+            .clone()
+            .map(|x| {
+                if x.contains('.') {
+                    let new_x = x.replace('.', package_dir.clone().to_str().unwrap());
+                    PathBuf::from(new_x)
+                } else {
+                    package_dir.join(x)
+                }
+            })
+            .collect::<Vec<PathBuf>>();
+
+        append_to_path(&config.paths.home, &env_add_paths).expect("Failed toa dd to path");
+    }
+
+    // do this as fall back in the even the function specfies no bin attr or env_add_path attr
+    // may not really be required
+    if let (None, None) = (&manifest.env_add_path, &manifest.bin) {
+        append_to_path(&config.paths.home, &vec![package_dir.clone()])
+            .expect("failed to add to path");
     }
 
     println!("\x1b[92minstalled {package_name}\x1b[0m");
