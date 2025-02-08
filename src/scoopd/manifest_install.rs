@@ -109,7 +109,7 @@ pub fn manifest_installer(
         append_to_path(&config.paths.home, &env_add_paths).expect("Failed toa dd to path");
     }
 
-    // do this as fall back in the even the function specfies no bin attr or env_add_path attr
+    // do this as fall back in the event the manifest specfies no bin attr or env_add_path attr
     // may not really be required
     if let (None, None) = (&manifest.env_add_path, &manifest.bin) {
         append_to_path(&config.paths.home, &vec![package_dir.clone()])
