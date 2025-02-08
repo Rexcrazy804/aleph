@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 
-use crate::powershell::installer::append_to_path;
+use crate::powershell::profile_util::append_to_path;
 
 const WGET_ERR: &str = "The term 'wget' is not recognized";
 // actually the only possible way for this to fail is for powershell to not be installed

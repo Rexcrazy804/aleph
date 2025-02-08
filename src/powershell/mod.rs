@@ -1,3 +1,2 @@
-pub mod installer;
-pub mod uninstaller;
+pub mod profile_util;
 pub mod utilities;
