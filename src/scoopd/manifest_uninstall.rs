@@ -1,4 +1,4 @@
-use crate::{powershell::uninstaller::remove_from_profile, AlephConfig};
+use crate::{powershell::profile_util::remove_from_profile, AlephConfig};
 use std::fs;
 
 pub fn manifest_uninstaller(config: &AlephConfig, package_name: &str) -> Result<(), String> {

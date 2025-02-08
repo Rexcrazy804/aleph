@@ -4,7 +4,7 @@ use crate::{
     cli::subcommands::find_package,
     errors::extraction::ExtractError,
     manifest::{Manifest, OneOrMany},
-    powershell::{installer::append_to_path, utilities::download_url},
+    powershell::{profile_util::append_to_path, utilities::download_url},
     zipper::extract_archive,
     AlephConfig,
 };
