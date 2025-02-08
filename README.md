@@ -21,7 +21,7 @@ windows.
 A windows pc or a wine prefix (LINUX) with powershell installed
 
 ## Scoop Manifest Compatibility
-#### Mandatory
+#### No implementation required
 - [x] version
 - [x] description
 - [x] homepage
