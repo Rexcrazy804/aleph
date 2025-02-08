@@ -21,13 +21,13 @@ windows.
 A windows pc or a wine prefix (LINUX) with powershell installed
 
 ## Scoop Manifest Compatibility
-- #### Mandatory
+#### Mandatory
 - [x] version
 - [x] description
 - [x] homepage
 - [x] license
 
-- #### currently supported
+#### currently supported
 - [x] ## (comments)
 - [x] url
 - [x] depends
@@ -37,11 +37,11 @@ A windows pc or a wine prefix (LINUX) with powershell installed
 - [x] notes
 - [x] suggest
 
-- #### partial support
+#### partial support
 - [x] bin
 - [x] architecture
 
-- #### Pending implementation
+#### Pending implementation
 - [ ] shortcuts
 - [ ] installer
 - [ ] post_install
@@ -50,11 +50,11 @@ A windows pc or a wine prefix (LINUX) with powershell installed
 - [ ] post_uninstall
 - [ ] uninstaller
 
-- #### Low Priority
+#### Low Priority
 - [ ] innosetup
 - [ ] hash
 - [ ] psmodule
 
-- #### IGNORED
+#### IGNORED
 - [ ] autoupdate
 - [ ] checkver
