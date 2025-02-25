@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 
-use crate::manifest::shortcuts::Shortcuts;
+use crate::manifest::shortcuts::{NormalizedShortCuts, Shortcuts};
 use crate::manifest::Manifest;
 use crate::powershell::profile_util::append_to_path;
 use crate::AlephConfig;
@@ -149,37 +149,36 @@ pub fn create_shortcuts(
         std::fs::create_dir_all(&shortcuts_path).expect("Failed to create Directory");
     }
 
-    //$WshShell = New-Object -COMObject WScript.Shell
-    //$Shortcut = $WshShell.CreateShortcut("C:\users\rexies\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\AlephPrograms\Godot Engine.lnk")
-    //$Shortcut.TargetPath = "C:\users\rexies\Aleph\Packages\godot\4.3\"
-    //$Shortcut.Save()
-
     // New-Item -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Name "MyProgram.lnk" -ItemType "File" -Value "C:\Path\To\Your\Program.exe"
-    let create_shorcut = |label: &str, target: &str| {
-        let args = [
-            "New-Item",
-            "-Path",
-            shortcuts_path.to_str().unwrap(),
-            "-Name",
-            &format!("\"{label}\""),
-            "-ItemType",
-            "File",
-            "-Value",
-            &format!("\"{target}\""),
+    let create_shorcut = |shortcut: NormalizedShortCuts| {
+        let target = shortcut.target;
+        let label = shortcut.label;
+        let script = [
+            "$WshShell = New-Object -COMObject WScript.Shell",
+            &format!(
+                "$Shortcut = $WshShell.CreateShortcut('{}')",
+                shortcuts_path.join(label).to_str().unwrap()
+            ),
+            &format!("$Shortcut.TargetPath = '{target}'"),
+            &format!(
+                "$Shortcut.WorkingDirectory = '{}'",
+                package_dir.to_str().unwrap()
+            ),
+            "$Shortcut.Save()",
         ];
+
+        let argument =
+            "\"".to_owned() + &script.iter().fold(String::new(), |acc, x| acc + x + ";") + "\"";
+        dbg!(&argument);
+        dbg!(&script);
+        let args = ["-c", &argument];
         dbg!(&args);
         Command::new("pwsh").args(args).output()
     };
 
     for shortcut in shortcuts {
-        match shortcut {
-            Shortcuts::Standard([target, label]) => {
-                let target_path = package_dir.join(target);
-                let _ = create_shorcut(label, target_path.to_str().unwrap());
-            }
-            Shortcuts::WithArgs(_) => todo!(),
-            Shortcuts::WithIcon(_) => todo!(),
-        }
+        let shortcut = shortcut.normalize();
+        create_shorcut(shortcut).expect("Failed to create shorcut: ");
     }
 
     Ok(())
