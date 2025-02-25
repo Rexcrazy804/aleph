@@ -3,7 +3,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 
+use crate::manifest::shortcuts::Shortcuts;
+use crate::manifest::Manifest;
 use crate::powershell::profile_util::append_to_path;
+use crate::AlephConfig;
 
 const WGET_ERR: &str = "The term 'wget' is not recognized";
 // actually the only possible way for this to fail is for powershell to not be installed
@@ -132,4 +135,52 @@ pub fn get_wget(packages_path: &Path) -> PathBuf {
     };
 
     extract_dir
+}
+
+pub fn create_shortcuts(
+    shortcuts: &[Shortcuts],
+    package_dir: &Path,
+    home_dir: &Path,
+) -> Result<(), String> {
+    let shortcuts_path = PathBuf::from(home_dir)
+        .join("AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\AlephPrograms\\");
+
+    if let Ok(false) = shortcuts_path.try_exists() {
+        std::fs::create_dir_all(&shortcuts_path).expect("Failed to create Directory");
+    }
+
+    //$WshShell = New-Object -COMObject WScript.Shell
+    //$Shortcut = $WshShell.CreateShortcut("C:\users\rexies\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\AlephPrograms\Godot Engine.lnk")
+    //$Shortcut.TargetPath = "C:\users\rexies\Aleph\Packages\godot\4.3\"
+    //$Shortcut.Save()
+
+    // New-Item -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Name "MyProgram.lnk" -ItemType "File" -Value "C:\Path\To\Your\Program.exe"
+    let create_shorcut = |label: &str, target: &str| {
+        let args = [
+            "New-Item",
+            "-Path",
+            shortcuts_path.to_str().unwrap(),
+            "-Name",
+            &format!("\"{label}\""),
+            "-ItemType",
+            "File",
+            "-Value",
+            &format!("\"{target}\""),
+        ];
+        dbg!(&args);
+        Command::new("pwsh").args(args).output()
+    };
+
+    for shortcut in shortcuts {
+        match shortcut {
+            Shortcuts::Standard([target, label]) => {
+                let target_path = package_dir.join(target);
+                let _ = create_shorcut(label, target_path.to_str().unwrap());
+            }
+            Shortcuts::WithArgs(_) => todo!(),
+            Shortcuts::WithIcon(_) => todo!(),
+        }
+    }
+
+    Ok(())
 }
