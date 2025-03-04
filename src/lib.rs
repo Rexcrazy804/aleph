@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod errors;
+pub mod luaconfig;
 pub mod manifest;
 pub mod powershell;
 pub mod scoopd;
