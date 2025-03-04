@@ -36,13 +36,13 @@ A windows pc or a wine prefix (LINUX) with powershell installed
 - [x] extract_to
 - [x] notes
 - [x] suggest
+- [x] shortcuts
 
 #### partial support
 - [x] bin
 - [x] architecture
 
 #### Pending implementation
-- [ ] shortcuts
 - [ ] installer
 - [ ] post_install
 - [ ] pre_install
