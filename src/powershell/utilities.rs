@@ -168,7 +168,7 @@ pub fn create_shortcuts(
         // define scuffed
         // Don't ask me how long it took to figure this crap out
         // and don't ask me what .'i'nk  files are. KMS
-        let args = [
+        let powershellargs = [
             "-c ",
             "& {",
             &format!(
@@ -177,19 +177,17 @@ pub fn create_shortcuts(
                 $Shortcut = $WshShell.CreateShortcut('{}.lnk')
                 $Shortcut.TargetPath = '{}'
                 $Shortcut.WorkingDirectory = '{}'
-                {}
-                {}
+                {args}
+                {icon}
                 $Shortcut.Save()
             ",
                 shortcuts_path.join(label).to_str().unwrap(),
                 package_dir.join(target).to_str().unwrap(),
                 package_dir.to_str().unwrap(),
-                args,
-                icon,
             ),
             "}",
         ];
-        Command::new("pwsh").args(args).output()
+        Command::new("pwsh").args(powershellargs).output()
     };
 
     let mut errors = String::new();
