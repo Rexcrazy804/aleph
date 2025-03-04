@@ -1,4 +1,26 @@
-# Aleph - a (WIP) declarative package manager for windows (that works on linux under wine)
+# Aleph 
+a **Work in Progress** declarative package manager for win(e)dows strongly based on
+[Scoop](https://github.com/ScoopInstaller/Scoop/) and inspired by
+[nix](https://nixos.org/)
+
+## PREFACE
+Currently there is still A LOOOOT of work to be done but I felt its about time
+I make this public, I don't really expect it to garner much interest since it
+was just a random project idea I've wanted to work on out of spite and eventually
+I've decided to work on it as my college project. Everything up version 0.0.50 are
+works by me and sanoy07 and this will be the only part that will be included and
+presented as part of our project.
+
+I've tested a lot of packages that (unfortunately) wasn't logged earlier so the current
+`testedpkgs.csv` is hardly reflective of the number of packages that do work I highly encourage
+populating that list with your own testing.
+
+As a rule of thumb anything that does not require the unsupported attributes will work
+and then again *some* packages will still install and run even when some of its attributes
+do not work.
+
+Also my Rust Code is pretty lacking so feel welcome to critique (also almost
+non existent error handling it is my next priority)
 
 ## Highlights
 - declarative package manager
@@ -18,7 +40,14 @@ developed bottom up on linux) and I am yet to perform sufficient testing on
 windows.
 
 ## Requirements
-A windows pc or a wine prefix (LINUX) with powershell installed
+A windows pc or a wine prefix (LINUX) with **powershell** installed
+
+> NOTE you may need to install powershell nonetheless on windows if you run into
+powershell not found error (I should fix it soon)
+
+> NOTE I have worked on this thing entirely on nix so I strongly recommend using
+the nix devShell when working on this project (also its really fucked up to set
+this cross compiling shinanigan up otherwise)
 
 ## Scoop Manifest Compatibility
 #### No implementation required
