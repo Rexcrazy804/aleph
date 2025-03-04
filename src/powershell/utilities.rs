@@ -152,6 +152,19 @@ pub fn create_shortcuts(
     let create_shorcut = |shortcut: &NormalizedShortCuts| {
         let target = shortcut.target;
         let label = shortcut.label;
+        let args = if let Some(args) = shortcut.args {
+            &format!("$Shortcut.Arguments = '{args}'")
+        } else {
+            ""
+        };
+        let icon = if let Some(icon) = shortcut.icon {
+            &format!(
+                "$Shortcut.IconLocation = '{}'",
+                package_dir.join(icon).to_str().unwrap()
+            )
+        } else {
+            ""
+        };
         // define scuffed
         // Don't ask me how long it took to figure this crap out
         // and don't ask me what .'i'nk  files are. KMS
@@ -164,11 +177,15 @@ pub fn create_shortcuts(
                 $Shortcut = $WshShell.CreateShortcut('{}.lnk')
                 $Shortcut.TargetPath = '{}'
                 $Shortcut.WorkingDirectory = '{}'
+                {}
+                {}
                 $Shortcut.Save()
             ",
                 shortcuts_path.join(label).to_str().unwrap(),
                 package_dir.join(target).to_str().unwrap(),
-                package_dir.to_str().unwrap()
+                package_dir.to_str().unwrap(),
+                args,
+                icon,
             ),
             "}",
         ];
