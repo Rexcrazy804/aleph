@@ -1,5 +1,10 @@
+use mlua::ffi::lua_getupvalue;
+use mlua::{Lua, LuaSerdeExt};
+
+use crate::luaconfig::LuaConfig;
 use crate::AlephConfig;
 use crate::{manifest::Manifest, scoopd::manifest_uninstall::manifest_uninstaller};
+use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 
 pub enum SubCommand {
@@ -10,8 +15,6 @@ pub enum SubCommand {
     Fetch,
     Uninstall,
 
-    // future [eta end of march]
-    #[allow(dead_code)]
     Rebuild,
 }
 
@@ -29,7 +32,7 @@ impl SubCommand {
             SubCommand::Install => install_repo_manifest(config, arguments),
             SubCommand::Fetch => fetch_repo(config, arguments),
             SubCommand::Uninstall => uninstall_package(config, arguments),
-            SubCommand::Rebuild => unimplemented!(""),
+            SubCommand::Rebuild => rebuild(config, arguments),
         }
     }
 }
@@ -53,6 +56,12 @@ fn display_help() {
         "92",
         "fetch <bucketname> <url>",
         "fetch a given bucket from url",
+        None,
+    );
+    colorize_print_description(
+        "92",
+        "rebuild <config.lua>",
+        "Rebuild the aleph package set with the given configuration",
         None,
     );
     colorize_print_description("92", "--help", "display this help", None);
@@ -107,6 +116,8 @@ pub fn fetch_repo(config: &AlephConfig, args: Option<&String>) -> Result<(), Str
         rename(archive, &new_archive).map_err(|e| e.to_string())?;
         extract_archive(config, &new_archive, &bucket_dir, None).map_err(|e| e.to_string())?;
     }
+
+    println!("\x1b[92mAdded Bucket {bucket_name}\x1b[0m");
 
     Ok(())
 }
@@ -236,4 +247,47 @@ pub fn search_bucket(keywords: &Vec<&str>, bucket: &Path) {
             break;
         }
     }
+}
+
+// VERY VERY VERY VERY VERY RAPID implimentation for rebuild will be going through a
+// LOT OF CHANGES
+pub fn rebuild(config: &AlephConfig, args: Option<&String>) -> Result<(), String> {
+    let Some(config_file) = args else {
+        println!("Please provide a configuration file");
+        return Err(String::from("No argument provided"));
+    };
+
+    let lua_config_data = read_to_string(config_file).map_err(|e| e.to_string())?;
+    let lua = Lua::new();
+    let lua_config: LuaConfig = lua
+        .from_value(
+            lua.load(lua_config_data)
+                .eval()
+                .map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+
+    // handle installing buckets
+
+    for (bucket_name, url) in lua_config.buckets {
+        let aleph_buckets_dir = &config.paths.buckets;
+
+        // TODO overwrite the local bucket if the bucket exists but is on an older
+        // rev than the suplied one (for later I suppose for now just nuke aleph directory OvO )
+        let bucket_dir = aleph_buckets_dir.join(&bucket_name);
+        if let Ok(false) = bucket_dir.try_exists() {
+            fetch_repo(config, Some(&format!("{bucket_name} {url}")))?;
+        };
+    }
+
+    // handle installing packages
+    // TODO IF THE PACKAGE NAME IS <BucketName>.<PackageName> HANDLE THAT [inside the install
+    // caling function that is]
+    for package in &lua_config.packages {
+        // install_repo_manifest has internal support for installing multiple packages
+        // at once but we'll prolly remove that
+        install_repo_manifest(config, Some(package))?;
+    }
+
+    Ok(())
 }
