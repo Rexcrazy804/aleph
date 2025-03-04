@@ -19,16 +19,16 @@ impl SubCommand {
     /// simple dispatcher for available subcommands
     /// # Errors
     /// Returns relevant errors as a string .w. [we can do better]
-    pub fn dispatch(&self, config: &AlephConfig, argument: Option<&String>) -> Result<(), String> {
+    pub fn dispatch(&self, config: &AlephConfig, arguments: Option<&String>) -> Result<(), String> {
         match self {
             SubCommand::Help => {
                 display_help();
                 Ok(())
             }
-            SubCommand::Search => search_repo(config, argument),
-            SubCommand::Install => install_repo_manifest(config, argument),
-            SubCommand::Fetch => fetch_repo(config, argument),
-            SubCommand::Uninstall => uninstall_package(config, argument),
+            SubCommand::Search => search_repo(config, arguments),
+            SubCommand::Install => install_repo_manifest(config, arguments),
+            SubCommand::Fetch => fetch_repo(config, arguments),
+            SubCommand::Uninstall => uninstall_package(config, arguments),
             SubCommand::Rebuild => unimplemented!(""),
         }
     }
@@ -65,20 +65,24 @@ fn colorize_print_description(color: &str, command: &str, description: &str, tab
     println!("\x1b[{color}m{command}\x1b[0m{tabs}- {description}");
 }
 
-pub fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(), String> {
+pub fn fetch_repo(config: &AlephConfig, args: Option<&String>) -> Result<(), String> {
     use crate::powershell::utilities::download_url;
     use crate::zipper::extract_archive;
     use std::fs::{create_dir, rename};
 
-    let (bucket_name, url) = if let Some(arg) = argument {
-        let arg = arg.trim();
-        arg.split_once(' ').expect("Invalid arguments to fetch")
-    } else {
-        println!("WARN NO ARGUMENT PROVIDED, assuming default bucket main");
-        (
-            "main",
-            "https://github.com/ScoopInstaller/Main/archive/refs/heads/master.zip",
-        )
+    let Some(args) = args else {
+        println!("WARN NO ARGUMENT PROVIDED, installing default buckets main, extras");
+        let main_bucket =
+            "main https://github.com/ScoopInstaller/Main/archive/refs/heads/master.zip";
+        let extras_bucket =
+            "extras https://github.com/ScoopInstaller/Extras/archive/refs/heads/master.zip";
+        fetch_repo(config, Some(&main_bucket.to_string()))?;
+        fetch_repo(config, Some(&extras_bucket.to_string()))?;
+        return Ok(());
+    };
+
+    let Some((bucket_name, url)) = args.split_once(' ') else {
+        return Err("Invalid arguments".to_string());
     };
 
     let bucket_dir = config.paths.buckets.join(bucket_name);
@@ -87,36 +91,36 @@ pub fn fetch_repo(config: &AlephConfig, argument: Option<&String>) -> Result<(),
         return Ok(());
     }
 
-    create_dir(&bucket_dir).expect("Failed to create directory for bucket {bucket_name}");
+    create_dir(&bucket_dir).map_err(|e| e.to_string())?;
 
     let Ok(archive) = download_url(url, &config.paths.download, &config.paths.packages) else {
         return Err("Failed to download File".to_string());
     };
 
     if archive.extension().is_some() {
-        extract_archive(config, &archive, &bucket_dir, None).expect("Archive error");
+        extract_archive(config, &archive, &bucket_dir, None).map_err(|e| e.to_string())?;
     } else {
         // in the event that the provided bucket does not have a file extension, we will assume
         // that it is a zip file.
         let mut new_archive = archive.clone();
         new_archive.set_file_name("bucket.zip");
-        rename(archive, &new_archive).expect("Failed to rename archive");
-        extract_archive(config, &new_archive, &bucket_dir, None).expect("Archive Error");
+        rename(archive, &new_archive).map_err(|e| e.to_string())?;
+        extract_archive(config, &new_archive, &bucket_dir, None).map_err(|e| e.to_string())?;
     }
 
     Ok(())
 }
 
-fn install_repo_manifest(config: &AlephConfig, arg: Option<&String>) -> Result<(), String> {
+fn install_repo_manifest(config: &AlephConfig, args: Option<&String>) -> Result<(), String> {
     use crate::manifest::Manifest;
     use crate::scoopd::manifest_install::manifest_installer;
     use std::fs::read_to_string;
 
-    let Some(arg) = arg else {
+    let Some(args) = args else {
         return Err("package name REQUIRED".to_string());
     };
 
-    let packages = arg.split_whitespace();
+    let packages = args.split_whitespace();
     for package in packages {
         let package = package.trim();
 
@@ -134,9 +138,9 @@ fn install_repo_manifest(config: &AlephConfig, arg: Option<&String>) -> Result<(
     Ok(())
 }
 
-pub fn uninstall_package(config: &AlephConfig, arg: Option<&String>) -> Result<(), String> {
+pub fn uninstall_package(config: &AlephConfig, args: Option<&String>) -> Result<(), String> {
     // Ensure we have an argument.
-    let arg = arg.ok_or("Package name required for uninstall.".to_string())?;
+    let arg = args.ok_or("Package name required for uninstall.".to_string())?;
 
     // Split the argument string into individual package names.
     for pkg in arg.split_whitespace().map(str::trim) {
@@ -174,7 +178,6 @@ pub(crate) fn find_package(config: &AlephConfig, package: &str) -> Option<PathBu
 }
 
 fn search_repo(config: &AlephConfig, keywords: Option<&String>) -> Result<(), String> {
-    // will need to modify this when multi bucket support is added
     let buckets_path = &config.paths.buckets;
 
     let Some(keywords) = keywords else {

@@ -5,7 +5,7 @@ pub mod powershell;
 pub mod scoopd;
 pub mod zipper;
 
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 
 // maybe branch these out into CONFIG/
 pub struct AlephConfig {
@@ -16,7 +16,9 @@ impl AlephConfig {
     #[must_use]
     pub fn new() -> Self {
         let paths = AlephPaths::new();
-        paths.initialize_root_dir();
+        if let Err(e) = paths.initialize_root_dir() {
+            eprintln!("WARN: Aleph Directory initialization failure: {e}");
+        };
         Self { paths }
     }
 
@@ -28,6 +30,12 @@ impl AlephConfig {
     #[must_use]
     pub fn get_root_path(&self) -> &PathBuf {
         &self.paths.root
+    }
+
+    /// # Errors
+    /// failure to create ``AlephPath`` Directories
+    pub fn re_initialize(&self) -> io::Result<()> {
+        self.paths.initialize_root_dir()
     }
 }
 
@@ -64,26 +72,30 @@ impl AlephPaths {
 
     /// this function creates the aleph root directory and popluates it with the required directory
     /// skips directory creation if it exists
-    // unsure whether this function should have a return type
-    // since if anything fails here the programs stops execution
-    // so if this function executes successfully it can be assumed
-    fn initialize_root_dir(&self) {
+    /// # Errors
+    /// failure to create ``AlephPath`` Directories
+    fn initialize_root_dir(&self) -> io::Result<()> {
+        // unsure whether this function should have a return type
+        // since if anything fails here the programs stops execution
+        // so if this function executes successfully it can be assumed
         use std::fs::create_dir;
 
         if let Ok(false) = &self.root.try_exists() {
             println!("Aleph root not found");
-            create_dir(&self.root).expect("Failed to create Aleph Root directory");
+            create_dir(&self.root)?;
             println!("Created aleph root at {:?}", &self.root);
         }
 
         if let Ok(false) = self.buckets.try_exists() {
-            create_dir(&self.buckets).expect("Failed to create Aleph/Buckets");
+            create_dir(&self.buckets)?;
         }
         if let Ok(false) = self.download.try_exists() {
-            create_dir(&self.download).expect("Failed to create Aleph/Downloads");
+            create_dir(&self.download)?;
         }
         if let Ok(false) = self.packages.try_exists() {
-            create_dir(&self.packages).expect("Failed to create Aleph/Packages");
+            create_dir(&self.packages)?;
         }
+
+        Ok(())
     }
 }
