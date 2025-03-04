@@ -12,3 +12,36 @@ pub enum Shortcuts {
     WithArgs([String; 3]),
     WithIcon([String; 4]),
 }
+
+pub struct NormalizedShortCuts<'a> {
+    pub target: &'a String,
+    pub label: &'a String,
+    pub args: Option<&'a String>,
+    pub icon: Option<&'a String>,
+}
+
+impl Shortcuts {
+    #[must_use]
+    pub fn normalize(&self) -> NormalizedShortCuts {
+        match self {
+            Shortcuts::Standard([target, label]) => NormalizedShortCuts {
+                target,
+                label,
+                args: None,
+                icon: None,
+            },
+            Shortcuts::WithArgs([target, label, args]) => NormalizedShortCuts {
+                target,
+                label,
+                args: Some(args),
+                icon: None,
+            },
+            Shortcuts::WithIcon([target, label, args, icon]) => NormalizedShortCuts {
+                target,
+                label,
+                args: Some(args),
+                icon: Some(icon),
+            },
+        }
+    }
+}

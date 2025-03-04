@@ -3,7 +3,6 @@ use crate::scoopd::manifest_install::dependency_install;
 use crate::AlephConfig;
 use std::ffi::OsStr;
 use std::fs;
-use std::io;
 use std::path::Path;
 
 /// unzips ``file_path`` to ``package_dir``

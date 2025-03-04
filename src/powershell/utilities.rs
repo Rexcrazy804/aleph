@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 
+use crate::manifest::shortcuts::{NormalizedShortCuts, Shortcuts};
 use crate::powershell::profile_util::append_to_path;
 
 const WGET_ERR: &str = "The term 'wget' is not recognized";
@@ -132,4 +133,77 @@ pub fn get_wget(packages_path: &Path) -> PathBuf {
     };
 
     extract_dir
+}
+
+pub fn create_shortcuts(
+    shortcuts: &[Shortcuts],
+    package_dir: &Path,
+    home_dir: &Path,
+) -> Result<(), String> {
+    let shortcuts_path = PathBuf::from(home_dir)
+        .join("AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\AlephPrograms\\");
+
+    if let Ok(false) = shortcuts_path.try_exists() {
+        std::fs::create_dir_all(&shortcuts_path).expect("Failed to create Directory");
+    }
+
+    let create_shorcut = |shortcut: &NormalizedShortCuts| {
+        let target = shortcut.target;
+        let label = shortcut.label;
+        let args = if let Some(args) = shortcut.args {
+            &format!("$Shortcut.Arguments = '{args}'")
+        } else {
+            ""
+        };
+        let icon = if let Some(icon) = shortcut.icon {
+            &format!(
+                "$Shortcut.IconLocation = '{}'",
+                package_dir.join(icon).to_str().unwrap()
+            )
+        } else {
+            ""
+        };
+        // define scuffed
+        // Don't ask me how long it took to figure this crap out
+        // and don't ask me what .'i'nk  files are. KMS
+        let powershellargs = [
+            "-c ",
+            "& {",
+            &format!(
+                "
+                $WshShell = New-Object -COMObject WScript.Shell
+                $Shortcut = $WshShell.CreateShortcut('{}.lnk')
+                $Shortcut.TargetPath = '{}'
+                $Shortcut.WorkingDirectory = '{}'
+                {args}
+                {icon}
+                $Shortcut.Save()
+            ",
+                shortcuts_path.join(label).to_str().unwrap(),
+                package_dir.join(target).to_str().unwrap(),
+                package_dir.to_str().unwrap(),
+            ),
+            "}",
+        ];
+        Command::new("pwsh").args(powershellargs).output()
+    };
+
+    let mut errors = String::new();
+    for shortcut in shortcuts {
+        let shortcut = shortcut.normalize();
+        let output = create_shorcut(&shortcut).expect("Failed to create shorcut: ");
+        //println!("{}", String::from_utf8(output.stdout).unwrap());
+        //println!("{}", String::from_utf8(output.stderr).unwrap());
+        if let Some(code) = output.status.code() {
+            if code == 1 {
+                eprintln!("Error creating shortcut {}", shortcut.label);
+                errors = errors + shortcut.label + " ";
+            }
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
