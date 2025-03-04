@@ -7,8 +7,8 @@ a **Work in Progress** declarative package manager for win(e)dows strongly based
 Currently there is still A LOOOOT of work to be done but I felt its about time
 I make this public, I don't really expect it to garner much interest since it
 was just a random project idea I've wanted to work on out of spite and eventually
-I've decided to work on it as my college project. Everything up version 0.0.50 are
-works by me and sanoy07 and this will be the only part that will be included and
+I've decided to work on it as my college project. Everything up to version 0.0.50 are
+worked on by me and sanoy07 and that will be the only part that will be included and
 presented as part of our project.
 
 I've tested a lot of packages that (unfortunately) wasn't logged earlier so the current
