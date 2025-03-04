@@ -39,6 +39,7 @@ pub fn manifest_installer(
         .join(package_version);
 
     // TODO (sanoy) check if program exists in path as well before exiting
+    // if it doesn't just add it to path
     // if let Ok(true) = package_dir.try_exists() {
     //    println!("Program {package_name} version {package_version} has already been installed");
     //    return Ok(())
@@ -121,8 +122,8 @@ pub fn manifest_installer(
             .expect("Failed to append env vars");
     }
 
-    if let Some(ref shortcuts) = manifest.shortcuts {
-        create_shortcuts(shortcuts, &package_dir, &config.paths.home);
+    if let Some(shortcuts) = manifest.get_shortcuts() {
+        create_shortcuts(shortcuts, &package_dir, &config.paths.home)?;
     }
 
     println!("\x1b[92minstalled {package_name}\x1b[0m");

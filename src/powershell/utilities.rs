@@ -149,37 +149,48 @@ pub fn create_shortcuts(
         std::fs::create_dir_all(&shortcuts_path).expect("Failed to create Directory");
     }
 
-    // New-Item -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Name "MyProgram.lnk" -ItemType "File" -Value "C:\Path\To\Your\Program.exe"
-    let create_shorcut = |shortcut: NormalizedShortCuts| {
+    let create_shorcut = |shortcut: &NormalizedShortCuts| {
         let target = shortcut.target;
         let label = shortcut.label;
-        let script = [
-            "$WshShell = New-Object -COMObject WScript.Shell",
+        // define scuffed
+        // Don't ask me how long it took to figure this crap out
+        // and don't ask me what .'i'nk  files are. KMS
+        let args = [
+            "-c ",
+            "& {",
             &format!(
-                "$Shortcut = $WshShell.CreateShortcut('{}')",
-                shortcuts_path.join(label).to_str().unwrap()
-            ),
-            &format!("$Shortcut.TargetPath = '{target}'"),
-            &format!(
-                "$Shortcut.WorkingDirectory = '{}'",
+                "
+                $WshShell = New-Object -COMObject WScript.Shell
+                $Shortcut = $WshShell.CreateShortcut('{}.lnk')
+                $Shortcut.TargetPath = '{}'
+                $Shortcut.WorkingDirectory = '{}'
+                $Shortcut.Save()
+            ",
+                shortcuts_path.join(label).to_str().unwrap(),
+                package_dir.join(target).to_str().unwrap(),
                 package_dir.to_str().unwrap()
             ),
-            "$Shortcut.Save()",
+            "}",
         ];
-
-        let argument =
-            "\"".to_owned() + &script.iter().fold(String::new(), |acc, x| acc + x + ";") + "\"";
-        dbg!(&argument);
-        dbg!(&script);
-        let args = ["-c", &argument];
-        dbg!(&args);
         Command::new("pwsh").args(args).output()
     };
 
+    let mut errors = String::new();
     for shortcut in shortcuts {
         let shortcut = shortcut.normalize();
-        create_shorcut(shortcut).expect("Failed to create shorcut: ");
+        let output = create_shorcut(&shortcut).expect("Failed to create shorcut: ");
+        //println!("{}", String::from_utf8(output.stdout).unwrap());
+        //println!("{}", String::from_utf8(output.stderr).unwrap());
+        if let Some(code) = output.status.code() {
+            if code == 1 {
+                eprintln!("Error creating shortcut {}", shortcut.label);
+                errors = errors + shortcut.label + " ";
+            }
+        }
     }
-
-    Ok(())
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }

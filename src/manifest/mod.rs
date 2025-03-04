@@ -137,6 +137,18 @@ impl Manifest {
         arch_manifest.bin.as_ref()
     }
 
+    #[must_use]
+    pub fn get_shortcuts(&self) -> Option<&Vec<Shortcuts>> {
+        if self.shortcuts.is_some() {
+            return self.shortcuts.as_ref();
+        };
+
+        let arch = self.architecture.as_ref()?;
+        let arch_manifest = arch.get_arch_manifest()?;
+        arch_manifest.shortcuts.as_ref()
+    }
+
+    #[must_use]
     pub fn get_extract_dir(&self) -> Option<&OneOrMany<String>> {
         if self.extract_dir.is_some() {
             return self.extract_dir.as_ref();
