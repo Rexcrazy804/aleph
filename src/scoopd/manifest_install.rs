@@ -38,12 +38,13 @@ pub fn manifest_installer(
         .join(package_name)
         .join(package_version);
 
-    // TODO (sanoy) check if program exists in path as well before exiting
-    // if it doesn't just add it to path
-    // if let Ok(true) = package_dir.try_exists() {
-    //    println!("Program {package_name} version {package_version} has already been installed");
-    //    return Ok(())
-    //}
+    // works for now
+    if let Ok(true) = package_dir.try_exists() {
+        println!("Program {package_name} version {package_version} has already been installed");
+        // kinda like a cache hit for now
+        handle_path_installation(config, manifest, &package_dir);
+        return Ok(());
+    }
 
     resolve_dependencies(config, manifest)?;
 
@@ -80,8 +81,24 @@ pub fn manifest_installer(
         return Err(format!("Failed to Extract Archive {e:?}"));
     };
 
+    handle_path_installation(config, manifest, &package_dir);
+
+    if let Some(shortcuts) = manifest.get_shortcuts() {
+        create_shortcuts(shortcuts, &package_dir, &config.paths.home)?;
+    }
+
+    println!("\x1b[92minstalled {package_name}\x1b[0m");
+
+    // TODO: implement this: If any of the apps suggested for the feature are already installed,
+    // the feature will be treated as 'fulfilled' and the user won't see any suggestions.
+    display_suggestions(manifest);
+
+    Ok(())
+}
+
+fn handle_path_installation(config: &AlephConfig, manifest: &Manifest, package_dir: &PathBuf) {
     if let Some(bin_attribute) = manifest.get_bin() {
-        let mut bin_paths = bin_attribute.normalized_executable_directores(&package_dir);
+        let mut bin_paths = bin_attribute.normalized_executable_directores(package_dir);
         if bin_paths.is_empty() {
             append_to_path(&config.paths.home, &vec![package_dir.clone()])
                 .expect("Failed to add to path");
@@ -118,21 +135,9 @@ pub fn manifest_installer(
     }
 
     if let Some(ref env_vars_map) = manifest.env_set {
-        append_env_vars(&config.paths.home, env_vars_map, &package_dir)
+        append_env_vars(&config.paths.home, env_vars_map, package_dir)
             .expect("Failed to append env vars");
     }
-
-    if let Some(shortcuts) = manifest.get_shortcuts() {
-        create_shortcuts(shortcuts, &package_dir, &config.paths.home)?;
-    }
-
-    println!("\x1b[92minstalled {package_name}\x1b[0m");
-
-    // TODO: implement this: If any of the apps suggested for the feature are already installed,
-    // the feature will be treated as 'fulfilled' and the user won't see any suggestions.
-    display_suggestions(manifest);
-
-    Ok(())
 }
 
 fn resolve_dependencies(config: &AlephConfig, manifest: &Manifest) -> Result<(), String> {

@@ -2,6 +2,7 @@ use mlua::ffi::lua_getupvalue;
 use mlua::{Lua, LuaSerdeExt};
 
 use crate::luaconfig::LuaConfig;
+use crate::powershell::profile_util::remove_from_path;
 use crate::AlephConfig;
 use crate::{manifest::Manifest, scoopd::manifest_uninstall::manifest_uninstaller};
 use std::fs::read_to_string;
@@ -289,5 +290,11 @@ pub fn rebuild(config: &AlephConfig, args: Option<&String>) -> Result<(), String
         install_repo_manifest(config, Some(package))?;
     }
 
+    // quick and dirty uninstall
+    remove_from_path(
+        config,
+        &lua_config.packages.iter().map(String::as_str).collect(),
+        true,
+    )?;
     Ok(())
 }

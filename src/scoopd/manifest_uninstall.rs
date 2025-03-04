@@ -7,7 +7,7 @@ pub fn manifest_uninstaller(config: &AlephConfig, package_name: &str) -> Result<
         return Err(format!("Package '{package_name}' not found"));
     }
 
-    remove_from_path(config, package_name)?;
+    remove_from_path(config, &vec![package_name], false)?;
 
     fs::remove_dir_all(&package_path)
         .map_err(|e| format!("Failed to remove package directory: {e}"))?;

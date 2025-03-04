@@ -16,5 +16,7 @@ return {
     "cowsay",
     "less",
     "eza",
+    "notepadplusplus",
+    "git",
   };
 }
