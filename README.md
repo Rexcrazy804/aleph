@@ -49,6 +49,33 @@ powershell not found error (I should fix it soon)
 the nix devShell when working on this project (also its really fucked up to set
 this cross compiling shinanigan up otherwise)
 
+## Configuration spec (HEAVILY SUBJECT TO CHANGE)
+The configuration is passed to aleph using rebuild subcommand followed by the path
+to the configuration
+```lua
+-- UNSTABLE SPECIFICATION FOR ALEPH Configuration
+-- works without the return but my lsp will complain
+return {
+  description = "Minimal Config";
+
+  buckets = {
+    main = "https://github.com/ScoopInstaller/Main/archive/68898739d017dfed8fcf7c096c48fe5d829c7bbd.zip",
+    extras = "https://github.com/ScoopInstaller/Extras/archive/8c3c91d622775f8bafc9ee6051c7ccc016fe7ec7.zip",
+  };
+
+  -- list of package names, (unimplemented)
+  -- can specify the bucket by using
+  -- "<bucketName>.packageName"
+  packages = {
+    "cowsay",
+    "less",
+    "eza",
+    "notepadplusplus",
+    "git",
+  };
+}
+```
+
 ## Scoop Manifest Compatibility
 #### No implementation required
 - [x] version
