@@ -1,7 +1,18 @@
 use crate::AlephConfig;
 use std::collections::HashMap;
-use std::fs::{self, create_dir};
+use std::fs::{self, create_dir, create_dir_all};
 use std::path::{Path, PathBuf};
+use std::process::Command;
+
+pub fn get_profile_path() -> PathBuf {
+    let output = Command::new("pwsh")
+        .args(["-c", "echo", "$PROFILE"])
+        .output()
+        .expect("Failed to execute process [is powershell installed?]");
+
+    let profile_path = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    PathBuf::from(profile_path)
+}
 
 // uninstaller
 pub fn remove_from_path(
@@ -9,12 +20,7 @@ pub fn remove_from_path(
     package_names: &Vec<&str>,
     inverse: bool,
 ) -> Result<(), String> {
-    let profile_path = config
-        .paths
-        .home
-        .join("Documents")
-        .join("PowerShell")
-        .join("Microsoft.PowerShell_profile.ps1");
+    let profile_path = get_profile_path();
 
     let profile_content = fs::read_to_string(&profile_path)
         .map_err(|e| format!("Failed to read PowerShell profile: {e}"))?;
@@ -72,12 +78,13 @@ $env:PATH)
 /// # Errors
 /// - IO erros like being unable to write to profile file
 pub fn append_to_path(home_dir: &Path, paths: &Vec<PathBuf>) -> std::io::Result<()> {
-    let powershell_dir = home_dir.join("Documents\\PowerShell");
-    if let Ok(false) = powershell_dir.try_exists() {
-        create_dir(powershell_dir.clone()).expect("Failed to create powershell folder");
+    let profile_path = get_profile_path();
+    let profile_dir = profile_path
+        .parent()
+        .expect("No parent dir for profile path");
+    if let Ok(false) = profile_path.parent().unwrap().try_exists() {
+        create_dir_all(profile_dir).expect("Failed to create powershell folder");
     }
-
-    let profile_path = powershell_dir.join("Microsoft.PowerShell_profile.ps1");
 
     let mut ps_profile = if let Ok(content) = fs::read_to_string(&profile_path) {
         content
@@ -142,12 +149,13 @@ pub fn append_env_vars(
     env_vars_map: &HashMap<String, String>,
     package_dir: &PathBuf,
 ) -> std::io::Result<()> {
-    let powershell_dir = home_dir.join("Documents\\PowerShell");
-    if let Ok(false) = powershell_dir.try_exists() {
-        create_dir(powershell_dir.clone()).expect("Failed to create powershell folder");
+    let profile_path = get_profile_path();
+    let profile_dir = profile_path
+        .parent()
+        .expect("No parent dir for profile path");
+    if let Ok(false) = profile_path.parent().unwrap().try_exists() {
+        create_dir_all(profile_dir).expect("Failed to create powershell folder");
     }
-
-    let profile_path = powershell_dir.join("Microsoft.PowerShell_profile.ps1");
 
     let mut ps_profile = if let Ok(content) = fs::read_to_string(&profile_path) {
         content
