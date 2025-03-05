@@ -63,8 +63,8 @@ return {
     extras = "https://github.com/ScoopInstaller/Extras/archive/8c3c91d622775f8bafc9ee6051c7ccc016fe7ec7.zip",
   };
 
-  -- list of package names, (unimplemented)
-  -- can specify the bucket by using
+  -- list of package names,
+  -- (unimplemented) can specify the bucket by using
   -- "<bucketName>.packageName"
   packages = {
     "cowsay",
