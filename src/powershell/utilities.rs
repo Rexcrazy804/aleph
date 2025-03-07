@@ -44,6 +44,7 @@ pub fn download_url(
         .args([
             "-c",
             "wget",
+            "-N",
             "-nv",
             url,
             "-P",
@@ -125,7 +126,8 @@ pub fn get_wget(packages_path: &Path) -> PathBuf {
             "Invoke-WebRequest",
             &url,
             "-OutFile ",
-            file_path.to_str().unwrap(),
+            // fixes username having a space
+            &format!("'{}'", file_path.display()),
         ])
         .output()
     else {

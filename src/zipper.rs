@@ -1,9 +1,12 @@
 use crate::errors::extraction::ExtractError;
 use crate::scoopd::manifest_install::dependency_install;
 use crate::AlephConfig;
-use std::ffi::OsStr;
-use std::fs;
-use std::path::Path;
+use std::{
+    ffi::OsStr,
+    fs::{self, create_dir_all, read_dir, remove_file},
+    path::Path,
+    process::Command,
+};
 
 /// unzips ``file_path`` to ``package_dir``
 /// if ``extract_dir`` is provided, then only that directory is extracted out of the ``archive``
@@ -20,7 +23,6 @@ pub fn extract_archive(
     // file and then modify the function to extract directly to package_dir instead of making
     // a folder on top of etract dir
     // TODO: add optional argument to explicitly provide filename
-    use fs::{create_dir_all, remove_file};
     let file_type = archive
         .extension()
         .and_then(OsStr::to_str)
@@ -59,7 +61,7 @@ pub fn extract_archive(
     println!("Extracted archive successfully");
 
     strip_directory(package_dir)?;
-    remove_file(archive)?;
+    //remove_file(archive)?;
 
     Ok(())
 }
@@ -69,8 +71,6 @@ fn extract_7z(
     package_dir: &Path,
     extract_dir: Option<&str>,
 ) -> Result<(), ExtractError> {
-    use std::process::Command;
-
     let extract_dir = if let Some(extract_dir) = extract_dir {
         // idk why but scoop uses -ir!{extract_dir}\* but that doesn't seem to be working for me
         // .w.
@@ -115,7 +115,23 @@ pub fn extract_msi(archive: &Path, package_dir: &Path) -> Result<(), ExtractErro
     // already been installed (i.e.) registered in the windows uninstaller. we needa figure out how
     // to unregister it from there sto be able to support multiple versions for .msi files
 
-    use std::process::Command;
+    // okay so, if the fucking file name has a hiphen in it msiexec start shitting itself
+    // on windows, who ever wrote msiexec was high.
+    let mut archive = archive.to_path_buf();
+    let file_name = archive
+        .file_name()
+        .ok_or(ExtractError::NoFileNameError)?
+        .to_str()
+        .ok_or(ExtractError::OsStrConversionError)?;
+    if file_name.contains('-') {
+        let new_file_name = file_name.replace('-', "minus");
+        let mut new_archive = archive.clone();
+        new_archive.set_file_name(new_file_name);
+
+        fs::rename(&archive, &new_archive)?;
+        archive = new_archive;
+    }
+
     let archive = archive.to_str().ok_or(ExtractError::OsStrConversionError)?;
     let package_dir = package_dir
         .to_str()
@@ -130,8 +146,9 @@ pub fn extract_msi(archive: &Path, package_dir: &Path) -> Result<(), ExtractErro
             "msiexec.exe",
             "/i",
             archive,
-            "/qn",
-            &format!("INSTALLDIR={package_dir}"),
+            "/passive",
+            // fixes username having a space .w.
+            &format!("INSTALLDIR='{package_dir}'"),
         ])
         .output()?;
 
@@ -150,8 +167,6 @@ pub fn extract_msi(archive: &Path, package_dir: &Path) -> Result<(), ExtractErro
 /// single entry [folder or file name]
 /// ``dir_to_extract`` comes from ``Manifest.package_dir`` and is not used as of now
 fn strip_directory(package_dir: &Path) -> Result<(), ExtractError> {
-    use fs::read_dir;
-
     if read_dir(package_dir)?.count() > 1 {
         return Ok(());
     }
