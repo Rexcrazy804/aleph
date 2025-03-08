@@ -48,9 +48,7 @@ pub fn download_url(
             "-nv",
             url,
             "-P",
-            download_location
-                .to_str()
-                .expect("Failed to convert location to String"),
+            &format!("'{}'", download_location.display()),
         ])
         .output()
     else {

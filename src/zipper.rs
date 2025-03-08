@@ -132,23 +132,17 @@ pub fn extract_msi(archive: &Path, package_dir: &Path) -> Result<(), ExtractErro
         archive = new_archive;
     }
 
-    let archive = archive.to_str().ok_or(ExtractError::OsStrConversionError)?;
-    let package_dir = package_dir
-        .to_str()
-        .ok_or(ExtractError::OsStrConversionError)?
-        .to_owned()
-        + "\\";
-
-    println!("WARN support for msi installation is incomplete!");
     let output = Command::new("pwsh")
         .args([
             "-c",
             "msiexec.exe",
             "/i",
-            archive,
+            &format!("'{}'", archive.display()),
             "/passive",
-            // fixes username having a space .w.
-            &format!("INSTALLDIR='{package_dir}'"),
+            // fuck this crap how am I supposed to I need to escape with '`' kms
+            // still ain't working there's still something going wrong when
+            // the username has a space
+            &format!("INSTALLDIR=`\"{}`\"", package_dir.display()),
         ])
         .output()?;
 
