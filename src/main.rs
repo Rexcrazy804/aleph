@@ -2,31 +2,15 @@ use aleph::{cli::Action, AlephConfig};
 use std::env;
 
 fn main() {
-    // advertizes the os the program is running on
-
     #[cfg(target_os = "linux")]
     panic!("Invalid Platform");
 
+    // advertizes the os the program is running on
     println!(
         "Running on {} arch {}",
         std::env::consts::OS,
         std::env::consts::ARCH
     );
-
-    // The main driver progrem is incomplete
-    // use: cargo test --test install_test -- --ignored --show-output
-    // to run the install test that currenlty drives the installer
-
-    // [immediate]
-    // aleph search <search string>             # same as below
-    // aleph install <package name>             # if repo not found at ~/Documents/Aleph/__REPO call aleph fetch
-    // aleph fetch [opt: <url>]                  # fetches the latest commit from the scoop branch
-    // aleph --help                             # displays all the available sub commands
-    // aleph <subcommand> --help                # usage information for the subcommand
-    // aleph                                    # should just run aleph --help
-    //
-    // [FUTURE]
-    // aleph rebuild <config file>
 
     let config = AlephConfig::new();
 
