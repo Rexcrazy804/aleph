@@ -44,12 +44,11 @@ pub fn download_url(
         .args([
             "-c",
             "wget",
+            "-N",
             "-nv",
             url,
             "-P",
-            download_location
-                .to_str()
-                .expect("Failed to convert location to String"),
+            &format!("'{}'", download_location.display()),
         ])
         .output()
     else {
@@ -125,7 +124,8 @@ pub fn get_wget(packages_path: &Path) -> PathBuf {
             "Invoke-WebRequest",
             &url,
             "-OutFile ",
-            file_path.to_str().unwrap(),
+            // fixes username having a space
+            &format!("'{}'", file_path.display()),
         ])
         .output()
     else {

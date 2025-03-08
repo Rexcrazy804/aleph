@@ -5,7 +5,7 @@ use crate::luaconfig::LuaConfig;
 use crate::powershell::profile_util::remove_from_path;
 use crate::AlephConfig;
 use crate::{manifest::Manifest, scoopd::manifest_uninstall::manifest_uninstaller};
-use std::fs::read_to_string;
+use std::fs::{read_to_string, remove_dir_all};
 use std::path::{Path, PathBuf};
 
 pub enum SubCommand {
@@ -107,19 +107,27 @@ pub fn fetch_repo(config: &AlephConfig, args: Option<&String>) -> Result<(), Str
         return Err("Failed to download File".to_string());
     };
 
-    if archive.extension().is_some() {
-        extract_archive(config, &archive, &bucket_dir, None).map_err(|e| e.to_string())?;
+    let extract_status = if archive.extension().is_some() {
+        extract_archive(config, &archive, &bucket_dir, None)
     } else {
         // in the event that the provided bucket does not have a file extension, we will assume
         // that it is a zip file.
         let mut new_archive = archive.clone();
         new_archive.set_file_name("bucket.zip");
         rename(archive, &new_archive).map_err(|e| e.to_string())?;
-        extract_archive(config, &new_archive, &bucket_dir, None).map_err(|e| e.to_string())?;
+        extract_archive(config, &new_archive, &bucket_dir, None)
+    };
+
+    if let Err(e) = extract_status {
+        // ensure that the bucket directory is deleted if an error is encountered
+        // while extracting
+        if let Err(e) = remove_dir_all(bucket_dir) {
+            return Err(e.to_string());
+        }
+        return Err(e.to_string());
     }
 
     println!("\x1b[92mAdded Bucket {bucket_name}\x1b[0m");
-
     Ok(())
 }
 
