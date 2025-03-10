@@ -5,7 +5,7 @@ use std::{
     ffi::OsStr,
     fs::{self, create_dir_all, read_dir, remove_file},
     path::Path,
-    process::Command,
+    process::{Command, ExitStatus, Output},
 };
 
 /// unzips ``file_path`` to ``package_dir``
@@ -132,27 +132,28 @@ pub fn extract_msi(archive: &Path, package_dir: &Path) -> Result<(), ExtractErro
         archive = new_archive;
     }
 
-    let output = Command::new("pwsh")
-        .args([
-            "-c",
-            "msiexec.exe",
-            "/i",
-            &format!("'{}'", archive.display()),
-            "/passive",
-            // fuck this crap how am I supposed to I need to escape with '`' kms
-            // still ain't working there's still something going wrong when
-            // the username has a space
-            &format!("INSTALLDIR=`\"{}`\"", package_dir.display()),
-        ])
-        .output()?;
+    let mut command = Command::new("pwsh");
+    command.args([
+        "-c",
+        "msiexec.exe",
+        "/i",
+        &format!("'{}'", archive.display()),
+        "/passive",
+        // fuck this crap how am I supposed to I need to escape with '`' kms
+        // still ain't working there's still something going wrong when
+        // the username has a space
+        &format!("INSTALLDIR='{}'", package_dir.display()),
+    ]);
 
-    let stderr = String::from_utf8(output.stderr)?;
+    //println!("{:?}", command.get_args());
+    let output = command.output()?;
 
-    if !stderr.is_empty() {
-        return Err(ExtractError::StdErr(stderr));
+    if output.status.success() {
+        Ok(())
+    } else {
+        eprintln!("msiexec exited with non zero exitcode");
+        Err(ExtractError::FailedToExtract)
     }
-
-    Ok(())
 }
 
 /// if the top level of the given directory contains only a single folder
