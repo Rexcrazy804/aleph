@@ -61,7 +61,6 @@ pub fn extract_archive(
     println!("Extracted archive successfully");
 
     strip_directory(package_dir)?;
-    //remove_file(archive)?;
 
     Ok(())
 }
@@ -117,6 +116,7 @@ pub fn extract_msi(archive: &Path, package_dir: &Path) -> Result<(), ExtractErro
 
     // okay so, if the fucking file name has a hiphen in it msiexec start shitting itself
     // on windows, who ever wrote msiexec was high.
+    println!("WARN support for msi installation is incomplete!");
     let mut archive = archive.to_path_buf();
     let file_name = archive
         .file_name()
