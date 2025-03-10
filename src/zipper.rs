@@ -1,9 +1,12 @@
 use crate::errors::extraction::ExtractError;
 use crate::scoopd::manifest_install::dependency_install;
 use crate::AlephConfig;
-use std::ffi::OsStr;
-use std::fs;
-use std::path::Path;
+use std::{
+    ffi::OsStr,
+    fs::{self, create_dir_all, read_dir, remove_file},
+    path::Path,
+    process::{Command, ExitStatus, Output},
+};
 
 /// unzips ``file_path`` to ``package_dir``
 /// if ``extract_dir`` is provided, then only that directory is extracted out of the ``archive``
@@ -20,7 +23,6 @@ pub fn extract_archive(
     // file and then modify the function to extract directly to package_dir instead of making
     // a folder on top of etract dir
     // TODO: add optional argument to explicitly provide filename
-    use fs::{create_dir_all, remove_file};
     let file_type = archive
         .extension()
         .and_then(OsStr::to_str)
@@ -59,7 +61,6 @@ pub fn extract_archive(
     println!("Extracted archive successfully");
 
     strip_directory(package_dir)?;
-    remove_file(archive)?;
 
     Ok(())
 }
@@ -69,8 +70,6 @@ fn extract_7z(
     package_dir: &Path,
     extract_dir: Option<&str>,
 ) -> Result<(), ExtractError> {
-    use std::process::Command;
-
     let extract_dir = if let Some(extract_dir) = extract_dir {
         // idk why but scoop uses -ir!{extract_dir}\* but that doesn't seem to be working for me
         // .w.
@@ -115,33 +114,46 @@ pub fn extract_msi(archive: &Path, package_dir: &Path) -> Result<(), ExtractErro
     // already been installed (i.e.) registered in the windows uninstaller. we needa figure out how
     // to unregister it from there sto be able to support multiple versions for .msi files
 
-    use std::process::Command;
-    let archive = archive.to_str().ok_or(ExtractError::OsStrConversionError)?;
-    let package_dir = package_dir
-        .to_str()
-        .ok_or(ExtractError::OsStrConversionError)?
-        .to_owned()
-        + "\\";
-
+    // okay so, if the fucking file name has a hiphen in it msiexec start shitting itself
+    // on windows, who ever wrote msiexec was high.
     println!("WARN support for msi installation is incomplete!");
-    let output = Command::new("pwsh")
-        .args([
-            "-c",
-            "msiexec.exe",
-            "/i",
-            archive,
-            "/qn",
-            &format!("INSTALLDIR={package_dir}"),
-        ])
-        .output()?;
+    let mut archive = archive.to_path_buf();
+    let file_name = archive
+        .file_name()
+        .ok_or(ExtractError::NoFileNameError)?
+        .to_str()
+        .ok_or(ExtractError::OsStrConversionError)?;
+    if file_name.contains('-') {
+        let new_file_name = file_name.replace('-', "minus");
+        let mut new_archive = archive.clone();
+        new_archive.set_file_name(new_file_name);
 
-    let stderr = String::from_utf8(output.stderr)?;
-
-    if !stderr.is_empty() {
-        return Err(ExtractError::StdErr(stderr));
+        fs::rename(&archive, &new_archive)?;
+        archive = new_archive;
     }
 
-    Ok(())
+    let mut command = Command::new("pwsh");
+    command.args([
+        "-c",
+        "msiexec.exe",
+        "/i",
+        &format!("'{}'", archive.display()),
+        "/passive",
+        // fuck this crap how am I supposed to I need to escape with '`' kms
+        // still ain't working there's still something going wrong when
+        // the username has a space
+        &format!("INSTALLDIR='{}'", package_dir.display()),
+    ]);
+
+    //println!("{:?}", command.get_args());
+    let output = command.output()?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        eprintln!("msiexec exited with non zero exitcode");
+        Err(ExtractError::FailedToExtract)
+    }
 }
 
 /// if the top level of the given directory contains only a single folder
@@ -150,8 +162,6 @@ pub fn extract_msi(archive: &Path, package_dir: &Path) -> Result<(), ExtractErro
 /// single entry [folder or file name]
 /// ``dir_to_extract`` comes from ``Manifest.package_dir`` and is not used as of now
 fn strip_directory(package_dir: &Path) -> Result<(), ExtractError> {
-    use fs::read_dir;
-
     if read_dir(package_dir)?.count() > 1 {
         return Ok(());
     }
