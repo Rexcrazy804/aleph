@@ -44,7 +44,8 @@ pub fn download_url(
         .args([
             "-c",
             "wget",
-            "-N",
+            //"-N", this is great but yeah if the file exists => no output from wget :(
+            // so till I figure something out we're stuck with this D:
             "-nv",
             url,
             "-P",
@@ -70,10 +71,12 @@ pub fn download_url(
 
         // Parses the exact file path
         let Some((_url, path)) = stderr.split_once('"') else {
-            println!("{stderr}");
+            println!("parse failure 1 {stderr}");
+            println!("{:?}", String::from_utf8(output.stdout).unwrap());
             return Err("Failed to parse wget output".to_string());
         };
         let Some((path, _)) = path.trim().split_once('"') else {
+            println!("parse failure 2 {stderr}");
             return Err("Failed to parse wget output".to_string());
         };
         // just to not cause weird inconsistencies

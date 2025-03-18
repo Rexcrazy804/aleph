@@ -61,6 +61,9 @@ pub fn extract_archive(
     println!("Extracted archive successfully");
 
     strip_directory(package_dir)?;
+    // no choice but to do this for now
+    // can be commented out when debugging I suppose
+    remove_file(archive)?;
 
     Ok(())
 }
