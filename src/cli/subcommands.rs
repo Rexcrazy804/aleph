@@ -1,3 +1,6 @@
+use crate::manifest::shortcuts;
+use crate::powershell::utilities::get_home_directory;
+use crate::powershell::utilities::remove_shortcuts;
 use mlua::ffi::lua_getupvalue;
 use mlua::{Lua, LuaSerdeExt};
 

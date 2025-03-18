@@ -207,3 +207,80 @@ pub fn create_shortcuts(
         Err(errors)
     }
 }
+
+/// Removes shortcuts for the given package from the Start Menu
+pub fn remove_shortcuts(package_name: &str, home_dir: &Path) -> Result<(), String> {
+    let shortcuts_path = home_dir
+        .join("AppData")
+        .join("Roaming")
+        .join("Microsoft")
+        .join("Windows")
+        .join("Start Menu")
+        .join("Programs")
+        .join("AlephPrograms");
+
+    if !shortcuts_path.exists() {
+        println!("No shortcuts folder found at {:?}", shortcuts_path);
+        return Ok(());
+    }
+
+    // Get the list of shortcuts for this package
+    // This could be from a stored list or from scanning the directory
+    let shortcuts = get_package_shortcuts(package_name)?;
+
+    let mut errors = String::new();
+    let mut removed_count = 0;
+
+    for shortcut in shortcuts {
+        let normalized = shortcut.normalize();
+        let shortcut_path = shortcuts_path.join(format!("{}.lnk", normalized.label));
+
+        if shortcut_path.exists() {
+            match fs::remove_file(&shortcut_path) {
+                Ok(_) => {
+                    println!("Removed shortcut: {}", normalized.label);
+                    removed_count += 1;
+                }
+                Err(e) => {
+                    let error_msg =
+                        format!("Failed to remove shortcut {}: {}", normalized.label, e);
+                    eprintln!("{}", error_msg);
+                    errors.push_str(&error_msg);
+                    errors.push(' ');
+                }
+            }
+        } else {
+            println!("Shortcut not found: {}", normalized.label);
+        }
+    }
+
+    println!(
+        "Removed {} shortcuts for package: {}",
+        removed_count, package_name
+    );
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+/// Gets the list of shortcuts for a package
+/// This could be implemented in various ways depending on your package management system
+fn get_package_shortcuts(package_name: &str) -> Result<Vec<Shortcuts>, String> {
+    // Implementation depends on how you store package information
+    // For example, you might have a JSON file or database with package information
+
+    // For now, let's assume a simple implementation
+    // You'd need to replace this with your actual logic
+    let shortcuts = vec![
+        // Example shortcuts for the package
+        Shortcuts::Standard([
+            format!("bin\\{}.exe", package_name),
+            format!("{}", package_name),
+        ]),
+    ];
+
+    Ok(shortcuts)
+}
