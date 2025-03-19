@@ -11,7 +11,7 @@ pub fn manifest_uninstaller(config: &AlephConfig, package_name: &str) -> Result<
 
     remove_from_path(config, &vec![package_name], false)?;
     let home_directory = get_home_directory();
-    remove_shortcuts(package_name, &home_directory)?;
+    remove_shortcuts(&config, package_name, &home_directory)?;
     fs::remove_dir_all(&package_path)
         .map_err(|e| format!("Failed to remove package directory: {e}"))?;
 

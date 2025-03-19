@@ -3,8 +3,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 
+use crate::cli::subcommands::find_package;
 use crate::manifest::shortcuts::{NormalizedShortCuts, Shortcuts};
+use crate::manifest::Manifest;
 use crate::powershell::profile_util::append_to_path;
+use crate::AlephConfig;
 
 const WGET_ERR: &str = "The term 'wget' is not recognized";
 // actually the only possible way for this to fail is for powershell to not be installed
@@ -209,7 +212,11 @@ pub fn create_shortcuts(
 }
 
 /// Removes shortcuts for the given package from the Start Menu
-pub fn remove_shortcuts(package_name: &str, home_dir: &Path) -> Result<(), String> {
+pub fn remove_shortcuts(
+    config: &AlephConfig,
+    package_name: &str,
+    home_dir: &Path,
+) -> Result<(), String> {
     let shortcuts_path = home_dir
         .join("AppData")
         .join("Roaming")
@@ -225,32 +232,35 @@ pub fn remove_shortcuts(package_name: &str, home_dir: &Path) -> Result<(), Strin
     }
 
     // Get the list of shortcuts for this package
-    // This could be from a stored list or from scanning the directory
-    let shortcuts = get_package_shortcuts(package_name)?;
+    let shortcuts = get_package_shortcuts(config, package_name)?;
 
     let mut errors = String::new();
     let mut removed_count = 0;
 
     for shortcut in shortcuts {
-        let normalized = shortcut.normalize();
-        let shortcut_path = shortcuts_path.join(format!("{}.lnk", normalized.label));
+        let shortcut_path = match shortcut {
+            Shortcuts::Standard([target, _])
+            | Shortcuts::WithArgs([target, _, _])
+            | Shortcuts::WithIcon([target, _, _, _]) => {
+                shortcuts_path.join(format!("{}.lnk", target))
+            }
+        };
 
         if shortcut_path.exists() {
             match fs::remove_file(&shortcut_path) {
                 Ok(_) => {
-                    println!("Removed shortcut: {}", normalized.label);
+                    println!("Removed shortcut: {:?}", shortcut_path);
                     removed_count += 1;
                 }
                 Err(e) => {
-                    let error_msg =
-                        format!("Failed to remove shortcut {}: {}", normalized.label, e);
+                    let error_msg = format!("Failed to remove shortcut {:?}: {}", shortcut_path, e);
                     eprintln!("{}", error_msg);
                     errors.push_str(&error_msg);
                     errors.push(' ');
                 }
             }
         } else {
-            println!("Shortcut not found: {}", normalized.label);
+            println!("Shortcut not found: {:?}", shortcut_path);
         }
     }
 
@@ -266,21 +276,26 @@ pub fn remove_shortcuts(package_name: &str, home_dir: &Path) -> Result<(), Strin
     }
 }
 
-/// Gets the list of shortcuts for a package
-/// This could be implemented in various ways depending on your package management system
-fn get_package_shortcuts(package_name: &str) -> Result<Vec<Shortcuts>, String> {
-    // Implementation depends on how you store package information
-    // For example, you might have a JSON file or database with package information
+pub fn get_package_shortcuts(
+    config: &AlephConfig,
+    package_name: &str,
+) -> Result<Vec<Shortcuts>, String> {
+    // Fetch the package manifest file path
+    let manifest_path = find_package(config, package_name)
+        .ok_or_else(|| format!("Package '{}' not found.", package_name))?;
 
-    // For now, let's assume a simple implementation
-    // You'd need to replace this with your actual logic
-    let shortcuts = vec![
-        // Example shortcuts for the package
-        Shortcuts::Standard([
-            format!("bin\\{}.exe", package_name),
-            format!("{}", package_name),
-        ]),
-    ];
+    // Read and parse the manifest JSON file
+    let manifest_content = fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("Failed to read manifest file: {}", e))?;
+    let manifest: Manifest = serde_json::from_str(&manifest_content)
+        .map_err(|e| format!("Failed to parse manifest JSON: {}", e))?;
+
+    // Ensure the manifest contains shortcuts
+    let shortcuts = manifest.shortcuts.unwrap_or_else(Vec::new); // Unwraps `Option<Vec<Shortcuts>>`
+
+    if shortcuts.is_empty() {
+        return Err(format!("No shortcuts found for package '{}'", package_name));
+    }
 
     Ok(shortcuts)
 }
