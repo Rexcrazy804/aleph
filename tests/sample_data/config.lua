@@ -14,9 +14,8 @@ return {
   -- using "<bucketName>.packageName"
   packages = {
     "cowsay",
-    "less",
     "eza",
     "notepadplusplus",
-    "git",
+    
   };
 }
