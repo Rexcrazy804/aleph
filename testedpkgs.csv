@@ -2,5 +2,5 @@ pname, version, bucket, status, additional info
 cowsay, v3.03, main, working, none
 eza, v0.20.23, main, working, none
 less, v668, main, working, none
-notepad++, v8.7.7, working, testing was brief
-git, v2.48.1.windows.1, working, could use more thorough testing
+notepad++, v8.7.7, extra, working, testing was brief
+git, v2.48.1.windows.1, main, working, could use more thorough testing
