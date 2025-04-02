@@ -14,7 +14,7 @@ const WGET_ERR: &str = "The term 'wget' is not recognized";
 /// # Panics
 /// - powershell not installed
 pub fn get_home_directory() -> PathBuf {
-    let output = Command::new("pwsh")
+    let output = Command::new(&*super::PWSH_EXE)
         .args(["-c", "echo", "$home"])
         .output()
         .expect("Failed to execute process [is powershell installed?]");
@@ -40,7 +40,7 @@ pub fn download_url(
 ) -> Result<PathBuf, String> {
     println!("Downloading file {url}...");
 
-    let Ok(output) = Command::new("pwsh")
+    let Ok(output) = Command::new(&*super::PWSH_EXE)
         .args([
             "-c",
             "wget",
@@ -121,7 +121,7 @@ pub fn get_wget(packages_path: &Path) -> PathBuf {
     // empty to select current directory
     let file_path = extract_dir.join(filename);
 
-    let Ok(_output) = Command::new("pwsh")
+    let Ok(_output) = Command::new(&*super::PWSH_EXE)
         .args([
             "-c",
             "Invoke-WebRequest",
@@ -188,7 +188,9 @@ pub fn create_shortcuts(
             ),
             "}",
         ];
-        Command::new("pwsh").args(powershellargs).output()
+        Command::new(&*super::PWSH_EXE)
+            .args(powershellargs)
+            .output()
     };
 
     let mut errors = String::new();

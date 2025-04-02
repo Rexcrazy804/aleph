@@ -1,11 +1,11 @@
 use crate::AlephConfig;
 use std::collections::HashMap;
-use std::fs::{self, create_dir, create_dir_all};
+use std::fs::{self, create_dir_all};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub fn get_profile_path() -> PathBuf {
-    let output = Command::new("pwsh")
+    let output = Command::new(&*super::PWSH_EXE)
         .args(["-c", "echo", "$PROFILE"])
         .output()
         .expect("Failed to execute process [is powershell installed?]");

@@ -9,6 +9,8 @@ pub mod zipper;
 use std::{io, path::PathBuf};
 
 // maybe branch these out into CONFIG/
+// should we potentially lazy lock AlephConfig like we
+// lazy lock PWSH_EXE?
 pub struct AlephConfig {
     paths: AlephPaths,
 }

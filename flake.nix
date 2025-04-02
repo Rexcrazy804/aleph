@@ -130,6 +130,9 @@
           RUSTFLAGS = builtins.map (a: ''-L ${a}/lib'') [
             pkgs.pkgsCross.mingwW64.windows.pthreads
           ];
+
+          # REQUIRED TO MAKE ALEPH USE pwsh INSTEAD OF powershell ON LINUX
+          ALEPH_LINUX = 1;
         };
       };
     };
