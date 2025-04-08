@@ -12,20 +12,6 @@ use crate::{
     AlephConfig,
 };
 
-// NOTE: if two buckets have packages with the same package name WE MUST force the user to
-// declare which bucket the package is to be downloaded from. The user may declare the package
-// to be installed from both buckets in which case we will need to set package name as
-// package_name = <bucket-name>-<Package-name>
-// TODO: implement above funtionality.
-// Files will be installed to ROOT_DIR/Packages/<Package-name>/<Package_version>/
-//
-// TODO Replace error return type to a concrete enum that can account for the different errors
-// no sanoy this is not for you
-/// # Errors
-/// TODO: populate [document the possible erros sanoy you can do this part]
-/// # Panics
-/// Failing to read or parse dependencies
-/// TODO: populate [document the panic sanoy you can do this too]
 pub fn manifest_installer(
     config: &AlephConfig,
     manifest: &Manifest,
@@ -37,12 +23,6 @@ pub fn manifest_installer(
         .packages
         .join(package_name)
         .join(package_version);
-
-    // TODO (sanoy) check if program exists in path as well before exiting
-    // if let Ok(true) = package_dir.try_exists() {
-    //    println!("Program {package_name} version {package_version} has already been installed");
-    //    return Ok(())
-    //}
 
     resolve_dependencies(config, manifest)?;
 
@@ -92,7 +72,6 @@ pub fn manifest_installer(
         }
     }
 
-    // I would have liked to have handled this alongside bin_attr but ig not
     if let Some(env_add_paths) = &manifest.env_add_path {
         let env_add_paths = env_add_paths
             .clone()
@@ -109,8 +88,6 @@ pub fn manifest_installer(
         append_to_path(&config.paths.home, &env_add_paths).expect("Failed to add to path");
     }
 
-    // do this as fall back in the event the manifest specfies no bin attr or env_add_path attr
-    // may not really be required
     if let (None, None) = (&manifest.env_add_path, &manifest.bin) {
         append_to_path(&config.paths.home, &vec![package_dir.clone()])
             .expect("failed to add to path");
@@ -123,8 +100,6 @@ pub fn manifest_installer(
 
     println!("\x1b[92minstalled {package_name}\x1b[0m");
 
-    // TODO: implement this: If any of the apps suggested for the feature are already installed,
-    // the feature will be treated as 'fulfilled' and the user won't see any suggestions.
     display_suggestions(manifest);
 
     Ok(())
@@ -236,33 +211,6 @@ pub fn dependency_install(config: &AlephConfig, dependency: &str) -> Result<(), 
     manifest_installer(config, &manifest, dependency)?;
     Ok(())
 }
-
-// ugly workaround will think of something later
-/* LICENSE FOR JSON CODE FOR 7zip from scoop main bucket
-This is free and unencumbered software released into the public domain.
-Anyone is free to copy, modify, publish, use, compile, sell, or
-distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial or non-commercial, and by any
-means.
-
-In jurisdictions that recognize copyright laws, the author or authors
-of this software dedicate any and all copyright interest in the
-software to the public domain. We make this dedication for the benefit
-of the public at large and to the detriment of our heirs and
-successors. We intend this dedication to be an overt act of
-relinquishment in perpetuity of all present and future rights to this
-software under copyright law.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
-
-For more information, please refer to <http://unlicense.org/>
-*/
 
 const SEVENZIP_MANIFEST: &str = r#"{
     "version": "24.09",
